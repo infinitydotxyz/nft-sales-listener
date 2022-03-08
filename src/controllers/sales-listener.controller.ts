@@ -283,8 +283,14 @@ const execute = (): void => {
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
   OpenseaContract.on('OrdersMatched', async (...args) => {
+    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+      return;
+    }
     const event: ethers.Event = args[args.length - 1];
-    const txHash: string = event.transactionHash;
+    const txHash: string = event?.transactionHash;
+    if (!txHash) {
+      return;
+    }
 
     let response;
     let maxAttempts = 10;
