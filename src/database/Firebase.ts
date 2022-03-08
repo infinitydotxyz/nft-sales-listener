@@ -1,10 +1,11 @@
 import { singleton } from 'tsyringe';
 import firebaseAdmin, { ServiceAccount } from 'firebase-admin';
 import { Bucket, File } from '@google-cloud/storage';
-import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
+import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT, NFTS_COLL } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Firebase {
@@ -29,26 +30,26 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
+    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${trimLowerCase(address)}`);
     return collectionDoc;
   }
 
-  getTokensCollectionRef(
+  getNftsCollectionRef(
     chainId: string,
     address: string
   ): FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData> {
     const collectionDoc = this.getCollectionDocRef(chainId, address);
-    const nftsCollection = collectionDoc.collection('nfts');
+    const nftsCollection = collectionDoc.collection(NFTS_COLL);
     return nftsCollection;
   }
 
-  getTokenDocRef(
+  getNftDocRef(
     chainId: string,
     address: string,
     tokenId: string
   ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const tokensCollectionRef = this.getTokensCollectionRef(chainId, address);
-    return tokensCollectionRef.doc(tokenId);
+    const nftsCollectionRef = this.getNftsCollectionRef(chainId, address);
+    return nftsCollectionRef.doc(tokenId);
   }
 
   async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {

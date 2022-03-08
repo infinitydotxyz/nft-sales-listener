@@ -1,4 +1,4 @@
-export enum SCRAPER_SOURCE {
+export enum SALE_SOURCE {
   OPENSEA = 'OPENSEA'
 }
 
@@ -14,36 +14,24 @@ export enum BASE_TIME {
   MONTHLY = 'monthly',
   YEARLY = 'yearly'
 }
-export interface NftTransaction {
+
+export interface NftSale {
+  chainId: string;
   txHash: string;
   blockNumber: number;
   blockTimestamp: number;
-  price: BigInt;
+  collectionAddress: string;
+  tokenId: string;
+  price: BigInt | number;
   paymentToken: string;
-  buyerAddress: string;
-  sellerAddress: string;
-  collectionAddr: string;
-  tokenIdStr: string;
+  buyer: string;
+  seller: string;
   quantity: number;
-  source: SCRAPER_SOURCE;
+  source: SALE_SOURCE;
   tokenType: TOKEN_TYPE;
 }
 
-export interface NftSalesRepository {
-  txHash: string;
-  tokenId: string;
-  collectionAddress: string;
-  price: number;
-  paymentTokenType: string;
-  quantity: number;
-  buyer: string;
-  seller: string;
-  source: string;
-  blockNumber: number;
-  blockTimestamp: number;
-}
-
-export interface StatsRepository {
+export interface Stats {
   floorPrice: number;
   ceilPrice: number;
   totalVolume: number;

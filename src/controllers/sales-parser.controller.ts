@@ -1,12 +1,13 @@
 import { logger } from '../container';
 import { convertWeiToEther } from '../utils';
-import { NftTransaction, NftSalesRepository } from '../types';
+import { NftSale } from '../types';
 import { NULL_ADDRESS } from '../constants';
 
 import SalesModel from '../models/sales.model';
 import StatsModel from '../models/stats.model';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
-export const handleNftTransactions = async (transactions: NftTransaction[], chainId = '1'): Promise<void> => {
+export const handleNftTransactions = async (transactions: NftSale[]): Promise<void> => {
   /**
    * Skip the transactions without ether as the payment. ex: usd, matic ...
    * */
@@ -15,27 +16,29 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
   }
 
   try {
-    const totalPrice = convertWeiToEther(transactions[0].price);
-    const orders: NftSalesRepository[] = transactions.map((tx: NftTransaction) => {
-      const order: NftSalesRepository = {
+    const totalPrice = convertWeiToEther(transactions[0].price as BigInt);
+    const orders: NftSale[] = transactions.map((tx: NftSale) => {
+      const order: NftSale = {
+        chainId: tx.chainId,
+        tokenType: tx.tokenType,
         txHash: tx.txHash.trim().toLowerCase(),
-        tokenId: tx.tokenIdStr,
-        collectionAddress: tx.collectionAddr.trim().toLowerCase(),
+        tokenId: tx.tokenId,
+        collectionAddress: tx.collectionAddress.trim().toLowerCase(),
         price: totalPrice / transactions.length / tx.quantity,
-        paymentTokenType: tx.paymentToken,
+        paymentToken: tx.paymentToken,
         quantity: tx.quantity,
-        buyer: tx.buyerAddress.trim().toLowerCase(),
-        seller: tx.sellerAddress.trim().toLowerCase(),
+        buyer: trimLowerCase(tx.buyer),
+        seller: trimLowerCase(tx.seller),
         source: tx.source,
         blockNumber: tx.blockNumber,
-        blockTimestamp: tx.blockTimestamp
+        blockTimestamp: tx.blockTimestamp,
       };
       return order;
     });
 
     const promiseArray = [SalesModel.handleOrders(orders), StatsModel.handleOrders(orders, totalPrice)];
 
-    await Promise.all(promiseArray);
+    await Promise.allSettled(promiseArray);
   } catch (err) {
     logger.error('Sales-scraper:updateCollectionSalesInfo', err);
   }

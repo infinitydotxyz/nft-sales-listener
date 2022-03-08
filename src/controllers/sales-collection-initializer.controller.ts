@@ -1,10 +1,10 @@
 import PQueue from 'p-queue';
-import OpenSeaClient, { CollectionStats } from '../services/OpenSea';
+import OpenSea, { CollectionStats } from '../services/OpenSea';
 import StatsModel from '../models/stats.model';
 import { logger } from '../container';
 
 const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
-const openseaClient = new OpenSeaClient();
+const openseaClient = new OpenSea();
 
 const initCollectionStatsFromOS = async (
   collectionAddress: string,
