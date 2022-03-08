@@ -11,19 +11,8 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
-<<<<<<< HEAD
-    const isInitialized = await StatsModel.checkIfCollInitialized(collectionAddress);
-    if (isInitialized) return;
-
-    const cs: CollectionStats = await openseaClient.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
-    await StatsModel.initStatsFromOS(cs, collectionAddress);
-
-    await StatsModel.setCollInitialization(collectionAddress);
-
-=======
     const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
     await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
->>>>>>> f56a8870bde328525d93eb1bc1525e6c56ed3d39
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
     logger.error('Failed fetching initial collection stats from opensea for', chainId, collectionAddress, err);

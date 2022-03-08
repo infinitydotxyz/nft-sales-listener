@@ -25,15 +25,9 @@ const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
  */
 const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): Promise<void> => {
   const db = firebase.db;
-<<<<<<< HEAD
-
-  const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${orders[0].collectionAddress}`);
-
-=======
   const collectionStatsRef = db
     .collection(COLLECTION_STATS_COLL)
     .doc(`${chainId}:(${trimLowerCase(orders[0].collectionAddress)}`);
->>>>>>> f56a8870bde328525d93eb1bc1525e6c56ed3d39
   const nftDocId = getDocIdHash({
     chainId,
     collectionAddress: orders[0].collectionAddress,
@@ -96,12 +90,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
       }
     }
   });
-<<<<<<< HEAD
   if (!isInitialized) {
-=======
-  // todo: this gets called on all empty stats for individual nfts, not just the collection
-  if (isEmpty) {
->>>>>>> f56a8870bde328525d93eb1bc1525e6c56ed3d39
     await addCollectionToQueue(orders[0].collectionAddress, orders[0].tokenId);
   }
 };
@@ -118,7 +107,8 @@ const saveInitialCollectionStats = (cs: CollectionStats, collectionAddress: stri
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
-    updateAt: timestamp
+    updateAt: timestamp,
+    isInitialized: true
   };
   batchHandler.add(statsRef, totalInfo, { merge: true });
 
@@ -170,6 +160,8 @@ const saveInitialCollectionStats = (cs: CollectionStats, collectionAddress: stri
   // commit
   batchHandler.flush();
 };
+
+const getCollStats = () => {};
 
 const StatsModel = { saveStats, saveInitialCollectionStats };
 
