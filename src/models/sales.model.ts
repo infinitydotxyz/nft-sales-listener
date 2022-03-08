@@ -1,26 +1,27 @@
-import PQueue from 'p-queue';
-import OpenSeaClient, { CollectionStats } from '../services/OpenSea';
-import StatsModel from '../models/stats.model';
-import { logger } from '../container';
+import { firebase, logger } from '../container';
+import { NftSalesRepository } from '../types';
+import { DBN_SALES } from '../constants';
 
-const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
-const openseaClient = new OpenSeaClient();
-
-const initCollectionStatsFromOS = async (
-  collectionAddress: string,
-  tokenId: string,
-  chainId: string
-): Promise<void> => {
+/**
+ * @description save the orders into <sales> collection
+ */
+const handleOrders = async (orders: NftSalesRepository[], chainId = '1'): Promise<FirebaseFirestore.WriteResult[]> => {
   try {
-    const cs: CollectionStats = await openseaClient.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
-    await StatsModel.initStatsFromOS(cs, collectionAddress);
-    logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
+    const firestore = firebase.db;
+    const batch = firestore.batch();
+    const SalesCollectionRef = firestore.collection(DBN_SALES);
+    orders.forEach((order) => {
+      const docRef = SalesCollectionRef.doc();
+      batch.create(docRef, order);
+    });
+    const res = await batch.commit();
+    return res;
   } catch (err) {
-    logger.error('opensea-sales-listener: [initCollectionStatsFromOS]', { collectionAddress });
+    logger.error('SalesModel:[handleOrders]', err);
     throw err;
   }
 };
 
-export const addCollectionToQueue = async (collectionAddr: string, tokenId: string, chainId = '1'): Promise<void> => {
-  await taskQueue.add(async () => await initCollectionStatsFromOS(collectionAddr, tokenId, chainId));
-};
+const SalesModel = { handleOrders };
+
+export default SalesModel;

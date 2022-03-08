@@ -1,10 +1,10 @@
-import { firebase } from '../../container';
+import { firebase } from '../container';
 import { addCollectionToQueue } from '../controllers/sales-collection-initializer.controller';
 import { getDocumentIdByTime } from '../utils';
 import { BASE_TIME, NftSalesRepository, StatsRepository } from '../types';
 import { DBN_COLLECTION_STATS, DBN_NFT_STATS } from '../constants';
-import { CollectionStats } from '../../services/OpenSea';
-import { getHashByNftAddress } from '../../utils';
+import { CollectionStats } from '../services/OpenSea';
+import { getHashByNftAddress } from '../utils';
 
 const getNewStats = (prevStats: StatsRepository, incomingStats: StatsRepository): StatsRepository => {
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;

@@ -1,15 +1,19 @@
 import PQueue from 'p-queue';
 import OpenSeaClient, { CollectionStats } from '../services/OpenSea';
-import CollectionStatsModel from '../models/collection-stats.model';
+import StatsModel from '../models/stats.model';
 import { logger } from '../container';
 
 const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
 const openseaClient = new OpenSeaClient();
 
-const initCollectionStatsFromOS = async (collectionAddress: string, tokenId: string, chainId: string): Promise<void> => {
+const initCollectionStatsFromOS = async (
+  collectionAddress: string,
+  tokenId: string,
+  chainId: string
+): Promise<void> => {
   try {
     const cs: CollectionStats = await openseaClient.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
-    await CollectionStatsModel.initStatsFromOS(cs, collectionAddress);
+    await StatsModel.initStatsFromOS(cs, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
     logger.error('opensea-sales-listener: [initCollectionStatsFromOS]', { collectionAddress });
