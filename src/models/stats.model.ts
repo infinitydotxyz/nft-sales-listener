@@ -33,17 +33,12 @@ const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'
 
   const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${orders[0].collectionAddress}`);
 
-<<<<<<< HEAD
   const nftDocId = getDocIdHash({
     chainId,
     collectionAddress: orders[0].collectionAddress,
     tokenId: orders[0].tokenId
   });
-  const nftStatsRef = db.collection(DBN_NFT_STATS).doc(nftDocId);
-=======
-  const nftDocId = getDocIdHash({chainId, collectionAddress: orders[0].collectionAddress, tokenId: orders[0].tokenId});
   const nftStatsRef = db.collection(NFT_STATS_COLL).doc(nftDocId);
->>>>>>> e864b9b5d2a67dcb2c2b9838bc42d5bb43e2b677
 
   let isEmpty = false;
 
@@ -91,7 +86,6 @@ const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'
       if (prevStats) {
         t.update(docRef, getNewStats(prevStats, incomingStats));
       } else {
-        hasValidStats = true;
         t.set(docRef, incomingStats);
       }
     }
