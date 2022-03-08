@@ -8,7 +8,6 @@ results*.json
 .env
 creds/*
 
-
 # output
 dist/*
 errors.txt

@@ -149,7 +149,6 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftSale[
     const saleAddress: string = addrs[11];
 
     const uints: BigInt[] = inputs.uints;
-    // TODO: The price should be retrieved from the calculateMatchPrice_ method of OpenSea Smart Contract
     const price: BigInt = uints[4];
     const buyerAddress = addrs[1]; // Buyer.maker
     const sellerAddress = addrs[8]; // Seller.maker
@@ -308,9 +307,7 @@ const execute = (): void => {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
         await handleNftTransactions(transactions);
       }
-    } catch (err) {
-      logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
-    }
+    } catch (err) {}
   });
 };
 
