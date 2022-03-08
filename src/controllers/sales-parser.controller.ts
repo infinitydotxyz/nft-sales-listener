@@ -21,9 +21,9 @@ export const handleNftTransactions = async (transactions: NftSale[]): Promise<vo
       const order: NftSale = {
         chainId: tx.chainId,
         tokenType: tx.tokenType,
-        txHash: tx.txHash.trim().toLowerCase(),
+        txHash: trimLowerCase(tx.txHash),
         tokenId: tx.tokenId,
-        collectionAddress: tx.collectionAddress.trim().toLowerCase(),
+        collectionAddress: trimLowerCase(tx.collectionAddress),
         price: totalPrice / transactions.length / tx.quantity,
         paymentToken: tx.paymentToken,
         quantity: tx.quantity,

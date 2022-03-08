@@ -283,7 +283,7 @@ const execute = (): void => {
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
   OpenseaContract.on('OrdersMatched', async (...args) => {
-    const event = args[args.length - 1];
+    const event: ethers.Event = args[args.length - 1];
     const txHash: string = event.transactionHash;
 
     let response;
@@ -307,7 +307,9 @@ const execute = (): void => {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
         await handleNftTransactions(transactions);
       }
-    } catch (err) {}
+    } catch (err) {
+      logger.error(err);
+    }
   });
 };
 

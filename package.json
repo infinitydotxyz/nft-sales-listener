@@ -9,7 +9,7 @@
     "clean": "rimraf ./dist",
     "lint": "eslint .",
     "lintfix": "eslint --fix .",
-    "start": "node -r dotenv/config ./dist/index.js",
+    "start": "cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
     "update:lib": "npm update @infinityxyz/lib"
   },
   "keywords": [],
