@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
-    "lintfix": "eslint --fix .",
-    "start": "node -r dotenv/config ./dist/bootstrap.js"
+    "fix": "eslint --fix .",
+    "start": "node -r dotenv/config ./dist/bootstrap.js",
+    "dev": "npm run build && cross-env NODE_ENV=script node -r dotenv/config ./dist/bootstrap.js",
+    "cli": "npm run build && cross-env NODE_ENV=cli node -r dotenv/config ./dist/bootstrap.js"
   },
   "keywords": [],
   "author": "",
