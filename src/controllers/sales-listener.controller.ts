@@ -149,7 +149,6 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftTrans
     const saleAddress: string = addrs[11];
 
     const uints: BigInt[] = inputs.uints;
-    // TODO: The price should be retrieved from the calculateMatchPrice_ method of OpenSea Smart Contract
     const price: BigInt = uints[4];
     const buyerAddress = addrs[1]; // Buyer.maker
     const sellerAddress = addrs[8]; // Seller.maker
