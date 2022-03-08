@@ -1,6 +1,6 @@
 import got, { Got, Response } from 'got';
 import { TokenStandard, TokenMetadata } from '@infinityxyz/lib/types/core';
-import { sleep } from '../utils';
+import { sleep } from '@infinityxyz/lib/utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
 import PQueue from 'p-queue';

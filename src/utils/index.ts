@@ -2,14 +2,6 @@ import { BASE_TIME } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 
-export async function sleep(duration: number): Promise<void> {
-  return await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, duration);
-  });
-}
-
 export function isDev(): boolean {
   return !!process.env.NODE_ENV;
 }
