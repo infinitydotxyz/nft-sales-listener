@@ -7,7 +7,6 @@ results*.json
 # Sensitive
 .env
 creds/*
-.npmrc
 
 # output
 dist/*
