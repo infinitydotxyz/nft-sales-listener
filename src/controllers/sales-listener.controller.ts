@@ -281,8 +281,14 @@ const execute = (): void => {
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
   OpenseaContract.on('OrdersMatched', async (...args) => {
-    const event = args[args.length - 1];
-    const txHash: string = event.transactionHash;
+    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+      return;
+    }
+    const event: ethers.Event = args[args.length - 1];
+    const txHash: string = event?.transactionHash;
+    if (!txHash) {
+      return;
+    }
 
     let response;
     let maxAttempts = 10;
@@ -307,6 +313,7 @@ const execute = (): void => {
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);
+      logger.error(err);
     }
   });
 };
