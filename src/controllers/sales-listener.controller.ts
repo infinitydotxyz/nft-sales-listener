@@ -306,9 +306,7 @@ const execute = (): void => {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
         await handleNftTransactions(transactions);
       }
-    } catch (err) {
-      logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
-    }
+    } catch (err) {}
   });
 };
 
