@@ -1,8 +1,11 @@
 export * from './wyvern-constants';
 
-export const DBN_COLLECTION_STATS = 'collectionStats';
-export const DBN_NFT_STATS = 'nftStats';
-export const DBN_SALES = 'sales';
+export const COLLECTION_STATS_COLL = 'collectionStats';
+export const DBN_ALL_TIME = 'all-time';
+export const NFT_STATS_COLL = 'nftStats';
+export const DBN_HISTORY = 'history';
+export const SALES_COLL = 'sales';
+export const NFTS_COLL = 'nfts';;
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
@@ -15,6 +18,7 @@ function getEnvironmentVariable(name: string, required = true): string {
 export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
+// todo: change this in prod
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
 

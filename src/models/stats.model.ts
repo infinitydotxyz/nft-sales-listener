@@ -1,12 +1,12 @@
 import { firebase } from '../container';
 import { addCollectionToQueue } from '../controllers/sales-collection-initializer.controller';
 import { getDocumentIdByTime } from '../utils';
-import { BASE_TIME, NftSalesRepository, StatsRepository } from '../types';
-import { DBN_COLLECTION_STATS, DBN_NFT_STATS } from '../constants';
+import { BASE_TIME, NftSale, Stats } from '../types';
+import { COLLECTION_STATS_COLL, NFT_STATS_COLL } from '../constants';
 import { CollectionStats } from '../services/OpenSea';
 import { getDocIdHash } from '@infinityxyz/lib/utils';
 
-const getNewStats = (prevStats: StatsRepository, incomingStats: StatsRepository): StatsRepository => {
+const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
@@ -28,28 +28,33 @@ const getNewStats = (prevStats: StatsRepository, incomingStats: StatsRepository)
 /**
  * @description save the orders into <sales> collection
  */
-const handleOrders = async (orders: NftSalesRepository[], totalPrice: number, chainId = '1'): Promise<void> => {
+const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'): Promise<void> => {
   const db = firebase.db;
 
-  const collectionStatsRef = db.collection(DBN_COLLECTION_STATS).doc(`${chainId}:${orders[0].collectionAddress}`);
+  const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${orders[0].collectionAddress}`);
 
+<<<<<<< HEAD
   const nftDocId = getDocIdHash({
     chainId,
     collectionAddress: orders[0].collectionAddress,
     tokenId: orders[0].tokenId
   });
   const nftStatsRef = db.collection(DBN_NFT_STATS).doc(nftDocId);
+=======
+  const nftDocId = getDocIdHash({chainId, collectionAddress: orders[0].collectionAddress, tokenId: orders[0].tokenId});
+  const nftStatsRef = db.collection(NFT_STATS_COLL).doc(nftDocId);
+>>>>>>> e864b9b5d2a67dcb2c2b9838bc42d5bb43e2b677
 
   let isEmpty = false;
 
   await db.runTransaction(async (t) => {
     const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
-    const incomingStats: StatsRepository = {
-      floorPrice: orders[0].price,
-      ceilPrice: orders[0].price,
+    const incomingStats: Stats = {
+      floorPrice: orders[0].price as number,
+      ceilPrice: orders[0].price as number,
       totalVolume: totalPrice,
       totalNumSales,
-      avgPrice: orders[0].price,
+      avgPrice: orders[0].price as number,
       updateAt: orders[0].blockTimestamp
     };
 
@@ -81,7 +86,7 @@ const handleOrders = async (orders: NftSalesRepository[], totalPrice: number, ch
     const dataArray = await Promise.all(promiseArray);
 
     for (let i = 0; i < docRefArray.length; i++) {
-      const prevStats = dataArray[i].data() as StatsRepository | undefined;
+      const prevStats = dataArray[i].data() as Stats | undefined;
       const docRef = docRefArray[i];
       if (prevStats) {
         t.update(docRef, getNewStats(prevStats, incomingStats));
@@ -105,8 +110,8 @@ const initStatsFromOS = async (
   const batch = firestore.batch();
 
   const timestamp = Date.now();
-  const statsRef = firestore.collection(DBN_COLLECTION_STATS).doc(`${chainId}:${collectionAddress}`);
-  const totalInfo: StatsRepository = {
+  const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${collectionAddress}`);
+  const totalInfo: Stats = {
     floorPrice: cs.floor_price,
     ceilPrice: 0,
     totalVolume: cs.total_volume,

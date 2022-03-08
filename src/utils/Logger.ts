@@ -1,8 +1,6 @@
 /* eslint-disable no-console */
 import { ERROR_LOG, INFO_LOG } from '../constants';
 import { singleton } from 'tsyringe';
-import { createWriteStream } from 'fs';
-import { Console } from 'console';
 import { isMainThread } from 'worker_threads';
 
 @singleton()

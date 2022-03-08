@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
 import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
@@ -31,7 +30,7 @@ function formatName(name: string): string {
  * we try not to use OpenSea more than we have to
  * prefer other methods of getting data if possible
  */
-export default class OpenSeaClient {
+export default class OpenSea {
   private readonly client: Got;
   constructor() {
     this.client = got.extend({
@@ -80,6 +79,7 @@ export default class OpenSeaClient {
       symbol: data.symbol ?? '',
       profileImage: collection.image_url ?? '',
       bannerImage: collection.banner_image_url ?? '',
+      displayType: collection.display_data?.card_display_style,
       links: {
         timestamp: new Date().getTime(),
         discord: collection.discord_url ?? '',

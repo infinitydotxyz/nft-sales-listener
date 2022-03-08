@@ -3,9 +3,9 @@ import { execute as runOpenseaSalesListener } from './controllers/sales-listener
 import chalk from 'chalk';
 import { logger } from './container';
 
-const execute = (): void => {
-  logger.log(chalk.blue('---  Running Opensea Sales Scraper ----'));
+const main = (): void => {
+  logger.log(chalk.blue('---  Running NFT Sales Listener ----'));
   runOpenseaSalesListener();
 };
 
-execute();
+main();

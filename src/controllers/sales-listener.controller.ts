@@ -8,7 +8,7 @@ import {
 } from '../constants';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
-import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
+import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
 import { handleNftTransactions } from './sales-parser.controller';
 import { logger, firebase } from '../container';
 import ERC721ABI from '../abi/erc721Abi.json';
@@ -143,7 +143,7 @@ function handleSingleSale(inputs: any): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftTransaction[] | undefined {
+function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftSale[] | undefined {
   try {
     const addrs = inputs.addrs;
     const saleAddress: string = addrs[11];
@@ -154,32 +154,33 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftTrans
     const sellerAddress = addrs[8]; // Seller.maker
     const paymentTokenErc20Address = addrs[6];
 
-    const res: NftTransaction = {
+    const res: NftSale = {
+      chainId: ETH_CHAIN_ID,
       txHash,
       blockNumber: block.number,
       blockTimestamp: block.timestamp * 1000,
       price,
       paymentToken: paymentTokenErc20Address,
-      buyerAddress,
-      sellerAddress,
-      collectionAddr: '',
-      tokenIdStr: '',
+      buyer: buyerAddress,
+      seller: sellerAddress,
+      collectionAddress: '',
+      tokenId: '',
       quantity: 0,
-      source: SCRAPER_SOURCE.OPENSEA,
+      source: SALE_SOURCE.OPENSEA,
       tokenType: TOKEN_TYPE.ERC721
     };
     if (saleAddress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
       const token = handleSingleSale(inputs);
-      res.collectionAddr = token.collectionAddr;
-      res.tokenIdStr = token.tokenIdStr;
+      res.collectionAddress = token.collectionAddr;
+      res.tokenId = token.tokenIdStr;
       res.tokenType = token.tokenType === 'ERC721' ? TOKEN_TYPE.ERC721 : TOKEN_TYPE.ERC1155;
       res.quantity = token.quantity;
       return [res];
     } else {
       const tokens = handleBundleSale(inputs);
-      const response: NftTransaction[] = tokens.map((token: TokenInfo) => {
-        res.collectionAddr = token.collectionAddr;
-        res.tokenIdStr = token.tokenIdStr;
+      const response: NftSale[] = tokens.map((token: TokenInfo) => {
+        res.collectionAddress = token.collectionAddr;
+        res.tokenId = token.tokenIdStr;
         res.tokenType = TOKEN_TYPE.ERC721;
         res.quantity = token.quantity;
         return res;
@@ -282,8 +283,14 @@ const execute = (): void => {
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
   OpenseaContract.on('OrdersMatched', async (...args) => {
-    const event = args[args.length - 1];
-    const txHash: string = event.transactionHash;
+    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+      return;
+    }
+    const event: ethers.Event = args[args.length - 1];
+    const txHash: string = event?.transactionHash;
+    if (!txHash) {
+      return;
+    }
 
     let response;
     let maxAttempts = 10;
@@ -306,7 +313,9 @@ const execute = (): void => {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
         await handleNftTransactions(transactions);
       }
-    } catch (err) {}
+    } catch (err) {
+      logger.error(err);
+    }
   });
 };
 
