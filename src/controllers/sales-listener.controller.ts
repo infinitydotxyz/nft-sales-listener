@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { Block } from '@ethersproject/abstract-provider';
 import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
 import WyvernExchangeABI from '../../abi/wyvernExchange.json';
-import { getProviderByChainId } from '../utils';
+import Providers from '../models/Providers';
 import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
 import { handleNftTransactions } from './sales-parser.controller';
 import { logger, firebase } from '../container';
@@ -11,7 +11,8 @@ import ERC1155ABI from '../../abi/erc1155Abi.json';
 import { NULL_ADDR } from '../constants';
 
 const ETH_CHAIN_ID = '1';
-const ethProvider = getProviderByChainId(ETH_CHAIN_ID);
+const providers = new Providers();
+const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
 
 interface TokenInfo {
   collectionAddr: string;
@@ -39,7 +40,9 @@ function handleBundleSale(inputs: any): TokenInfo[] {
   const collectionAddrs: string[] = [];
   let offset = indexStopNbToken;
   for (let i = 0; i < nbToken; i++) {
-    collectionAddrs.push(ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toHexString());
+    collectionAddrs.push(
+      ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toHexString()
+    );
 
     // Move forward in the call data
     offset += UINT_256_LENGTH;
@@ -229,7 +232,7 @@ const pruneERC721 = async (id: string, address: string) => {
   } catch (err) {
     console.error('Error pruning listing', err);
   }
-}
+};
 
 // todo: check firestore collections
 const pruneERC1155 = async (id: string, address: string, seller: string) => {

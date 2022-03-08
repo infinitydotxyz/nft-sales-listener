@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import { BASE_TIME } from '../types';
+import { ethers } from 'ethers';
+import moment from 'moment';
 
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
   const hashes = new Set();
@@ -73,6 +76,35 @@ export function randomItem<T>(array: T[]): T {
  *
  */
 export const getHashByNftAddress = (chainId: string, collectionAddress: string, tokenId: string): string => {
-  const data = chainId + collectionAddress.trim() + tokenId.trim();
+  const data = chainId + '::' + collectionAddress.trim() + '::' + tokenId.trim();
   return crypto.createHash('sha256').update(data).digest('hex').trim().toLowerCase();
+};
+
+/**
+ *
+ * @param date
+ * @param baseTime
+ * @returns Firestore historical document id ( sales info ) based on date and basetime
+ *
+ */
+export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {
+  const date = new Date(timestamp);
+  const firstDayOfWeek = date.getDate() - date.getDay();
+
+  switch (baseTime) {
+    case BASE_TIME.HOURLY:
+      return moment(date).format('YYYY-MM-DD-HH');
+    case BASE_TIME.DAILY:
+      return moment(date).format('YYYY-MM-DD');
+    case BASE_TIME.WEEKLY:
+      return moment(date.setDate(firstDayOfWeek)).format('YYYY-MM-DD');
+    case BASE_TIME.MONTHLY:
+      return moment(date).format('YYYY-MM');
+    case BASE_TIME.YEARLY:
+      return moment(date).format('YYYY');
+  }
+};
+
+export const convertWeiToEther = (price: BigInt): number => {
+  return parseFloat(ethers.utils.formatEther(price.toString()));
 };
