@@ -1,43 +1,4 @@
 import crypto from 'crypto';
-import { logger, providers } from '../container';
-import { JsonRpcProvider } from '@ethersproject/providers';
-import { BASE_TIME, NftTransaction } from '../types';
-import { ethers } from 'ethers';
-import moment from 'moment';
-
-/**
- *
- * @param date
- * @param baseTime
- * @returns Firestore historical document id ( sales info ) based on date and basetime
- *
- */
-export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {
-  const date = new Date(timestamp);
-  const firstDayOfWeek = date.getDate() - date.getDay();
-
-  switch (baseTime) {
-    case BASE_TIME.HOURLY:
-      return moment(date).format('YYYY-MM-DD-HH');
-    case BASE_TIME.DAILY:
-      return moment(date).format('YYYY-MM-DD');
-    case BASE_TIME.WEEKLY:
-      return moment(date.setDate(firstDayOfWeek)).format('YYYY-MM-DD');
-    case BASE_TIME.MONTHLY:
-      return moment(date).format('YYYY-MM');
-    case BASE_TIME.YEARLY:
-      return moment(date).format('YYYY');
-  }
-};
-
-export const convertWeiToEther = (price: BigInt): number => {
-  return parseFloat(ethers.utils.formatEther(price.toString()));
-};
-
-
-export function getProviderByChainId(chainId: string): JsonRpcProvider {
-  return providers.getProviderByChainId(chainId);
-}
 
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
   const hashes = new Set();
@@ -61,6 +22,35 @@ export async function sleep(duration: number): Promise<void> {
 
 export function isDev(): boolean {
   return !!process.env.NODE_ENV;
+}
+
+export enum Env {
+  Cli = 'cli',
+  Script = 'script',
+  Production = 'production'
+}
+
+export function getEnv(): Env {
+  switch (process.env.NODE_ENV) {
+    case Env.Cli:
+      return Env.Cli;
+    case Env.Script:
+      return Env.Script;
+    default:
+      if (process.env.NODE_ENV) {
+        throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
+      }
+      return Env.Production;
+  }
+}
+
+export function getSearchFriendlyString(input: string): string {
+  if (!input) {
+    return '';
+  }
+  // remove spaces, dashes and underscores only
+  const output = input.replace(/[\s-_]/g, '');
+  return output.toLowerCase();
 }
 
 /**
