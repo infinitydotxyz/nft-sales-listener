@@ -16,7 +16,7 @@ const initCollectionStatsFromOS = async (
     const collStats = await StatsModel.getCollStats(collectionAddress, chainId);
     if (collStats && collStats.isInitialized) return;
 
-    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
+    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId);
     await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
