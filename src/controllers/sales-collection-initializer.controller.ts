@@ -1,10 +1,9 @@
 import PQueue from 'p-queue';
-import OpenSea, { CollectionStats } from '../services/OpenSea';
+import { CollectionStats } from '../services/OpenSea';
 import StatsModel from '../models/stats.model';
-import { logger } from '../container';
+import { logger, opensea } from '../container';
 
 const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
-const openseaClient = new OpenSea();
 
 const initCollectionStatsFromOS = async (
   collectionAddress: string,
@@ -12,12 +11,11 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
-    const cs: CollectionStats = await openseaClient.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
-    await StatsModel.initStatsFromOS(cs, collectionAddress);
+    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
+    await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
-    logger.error('opensea-sales-listener: [initCollectionStatsFromOS]', { collectionAddress });
-    throw err;
+    logger.error('Failed fetching initial collection stats from opensea for', chainId, collectionAddress, err);
   }
 };
 
