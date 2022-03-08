@@ -2,15 +2,15 @@
   "name": "nft-sales-listener",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "npm run clean && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run update:lib && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
-    "fix": "eslint --fix .",
-    "stanpt": "node -r dotenv/config ./dist/bootstrap.js",
-    "dev": "npm run build && cross-env NODE_ENV=script node -r dotenv/config ./dist/src/index.js",
-    "cli": "npm run build && cross-env NODE_ENV=cli node -r dotenv/config ./dist/bootstrap.js"
+    "lintfix": "eslint --fix .",
+    "start": "node -r dotenv/config ./dist/index.js",
+    "update:lib": "npm update @infinityxyz/lib"
   },
   "keywords": [],
   "author": "",
@@ -32,7 +32,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@infinityxyz/types": "^1.1.2",
+    "@infinityxyz/lib": "^1.1.2",
     "bl": "^5.0.0",
     "chalk": "^4.1.2",
     "dotenv": "^16.0.0",

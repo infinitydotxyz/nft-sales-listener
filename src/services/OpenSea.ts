@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import { CollectionMetadata, TokenStandard } from '@infinityxyz/types/core';
+import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
 
@@ -84,13 +84,17 @@ export default class OpenSeaClient {
         timestamp: new Date().getTime(),
         discord: collection.discord_url ?? '',
         external: collection.external_url ?? '',
-        medium: typeof collection?.medium_username === 'string' ? `https://medium.com/${collection.medium_username}` : '',
+        medium:
+          typeof collection?.medium_username === 'string' ? `https://medium.com/${collection.medium_username}` : '',
         slug: collection?.slug ?? '',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         telegram: collection?.telegram_url ?? '',
-        twitter: typeof collection?.twitter_username === 'string' ? `https://twitter.com/${collection.twitter_username}` : '',
+        twitter:
+          typeof collection?.twitter_username === 'string' ? `https://twitter.com/${collection.twitter_username}` : '',
         instagram:
-          typeof collection?.instagram_username === 'string' ? `https://instagram.com/${collection.instagram_username}` : '',
+          typeof collection?.instagram_username === 'string'
+            ? `https://instagram.com/${collection.instagram_username}`
+            : '',
         wiki: collection?.wiki_url ?? ''
       }
     };
@@ -140,7 +144,11 @@ export default class OpenSeaClient {
     return collection;
   }
 
-  async getCollectionStatsByTokenInfo(collectionAddr: string, tokenId: string, chainId: string): Promise<CollectionStats> {
+  async getCollectionStatsByTokenInfo(
+    collectionAddr: string,
+    tokenId: string,
+    chainId: string
+  ): Promise<CollectionStats> {
     const res: Response<{ collection: { stats: CollectionStats } }> = await this.errorHandler(() => {
       return this.client.get(`asset/${collectionAddr}/${tokenId}`, {
         responseType: 'json'

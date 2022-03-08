@@ -3,18 +3,6 @@ import { BASE_TIME } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 
-export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
-  const hashes = new Set();
-  return items.filter((item: T) => {
-    const property = propertySelector(item);
-    if (!hashes.has(property)) {
-      hashes.add(property);
-      return true;
-    }
-    return false;
-  });
-}
-
 export async function sleep(duration: number): Promise<void> {
   return await new Promise<void>((resolve) => {
     setTimeout(() => {
@@ -25,35 +13,6 @@ export async function sleep(duration: number): Promise<void> {
 
 export function isDev(): boolean {
   return !!process.env.NODE_ENV;
-}
-
-export enum Env {
-  Cli = 'cli',
-  Script = 'script',
-  Production = 'production'
-}
-
-export function getEnv(): Env {
-  switch (process.env.NODE_ENV) {
-    case Env.Cli:
-      return Env.Cli;
-    case Env.Script:
-      return Env.Script;
-    default:
-      if (process.env.NODE_ENV) {
-        throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
-      }
-      return Env.Production;
-  }
-}
-
-export function getSearchFriendlyString(input: string): string {
-  if (!input) {
-    return '';
-  }
-  // remove spaces, dashes and underscores only
-  const output = input.replace(/[\s-_]/g, '');
-  return output.toLowerCase();
 }
 
 /**
@@ -69,16 +28,6 @@ export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
 }
-
-/**
- *
- * @description  tokenIds can be big in some cases and we might run into firestore doc name length limit
- *
- */
-export const getHashByNftAddress = (chainId: string, collectionAddress: string, tokenId: string): string => {
-  const data = chainId + '::' + collectionAddress.trim() + '::' + tokenId.trim();
-  return crypto.createHash('sha256').update(data).digest('hex').trim().toLowerCase();
-};
 
 /**
  *

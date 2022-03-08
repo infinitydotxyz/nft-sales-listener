@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { execute as runOpenseaSalesListener } from './controllers/sales-listener.controller';
 import chalk from 'chalk';
-import { logger } from '../src/container';
+import { logger } from './container';
 
 const execute = (): void => {
   logger.log(chalk.blue('---  Running Opensea Sales Scraper ----'));
@@ -9,5 +9,3 @@ const execute = (): void => {
 };
 
 execute();
-
-export { execute };

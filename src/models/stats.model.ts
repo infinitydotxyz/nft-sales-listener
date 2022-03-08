@@ -4,7 +4,7 @@ import { getDocumentIdByTime } from '../utils';
 import { BASE_TIME, NftSalesRepository, StatsRepository } from '../types';
 import { DBN_COLLECTION_STATS, DBN_NFT_STATS } from '../constants';
 import { CollectionStats } from '../services/OpenSea';
-import { getHashByNftAddress } from '../utils';
+import { getDocIdHash } from '@infinityxyz/lib/utils';
 
 const getNewStats = (prevStats: StatsRepository, incomingStats: StatsRepository): StatsRepository => {
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
@@ -33,7 +33,7 @@ const handleOrders = async (orders: NftSalesRepository[], totalPrice: number, ch
 
   const collectionStatsRef = db.collection(DBN_COLLECTION_STATS).doc(`${chainId}:${orders[0].collectionAddress}`);
 
-  const nftDocId = getHashByNftAddress(chainId, orders[0].collectionAddress, orders[0].tokenId);
+  const nftDocId = getDocIdHash({chainId, collectionAddress: orders[0].collectionAddress, tokenId: orders[0].tokenId});
   const nftStatsRef = db.collection(DBN_NFT_STATS).doc(nftDocId);
 
   let isEmpty = false;

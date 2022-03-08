@@ -6,13 +6,13 @@ import {
   WYVERN_ATOMICIZER_ADDRESS,
   NULL_ADDRESS
 } from '../constants';
-import WyvernExchangeABI from '../../abi/wyvernExchange.json';
+import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
 import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
 import { handleNftTransactions } from './sales-parser.controller';
 import { logger, firebase } from '../container';
-import ERC721ABI from '../../abi/erc721Abi.json';
-import ERC1155ABI from '../../abi/erc1155Abi.json';
+import ERC721ABI from '../abi/erc721Abi.json';
+import ERC1155ABI from '../abi/erc1155Abi.json';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
