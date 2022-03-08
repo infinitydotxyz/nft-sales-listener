@@ -306,7 +306,10 @@ const execute = (): void => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
-      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike) as any;
+      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
+        'atomicMatch_',
+        response as ethers.utils.BytesLike
+      ) as any;
       const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
       if (saleOrders) {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
