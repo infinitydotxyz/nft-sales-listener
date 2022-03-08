@@ -29,30 +29,7 @@ export interface NftTransaction {
   tokenType: TOKEN_TYPE;
 }
 
-export interface NftSalesRepository {
-  txHash: string;
-  tokenId: string;
-  collectionAddress: string;
-  price: number;
-  paymentTokenType: string;
-  quantity: number;
-  buyer: string;
-  seller: string;
-  source: string;
-  blockNumber: number;
-  blockTimestamp: number;
-}
-
-export interface CollectionStatsRepository {
-  floorPrice: number;
-  ceilPrice: number;
-  totalVolume: number;
-  totalNumSales: number;
-  avgPrice: number;
-  updateAt: number;
-}
-
-export interface NftStatsRepository {
+export interface StatsRepository {
   floorPrice: number;
   ceilPrice: number;
   totalVolume: number;
