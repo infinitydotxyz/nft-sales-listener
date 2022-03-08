@@ -7,6 +7,8 @@ import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
 import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
+import SalesModel from 'models/sales.model';
+import StatsModel from 'models/stats.model';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -306,14 +308,15 @@ const execute = (): void => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
-      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
-        'atomicMatch_',
-        response as ethers.utils.BytesLike
-      ) as any;
+      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike) as any;
       const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
-      if (saleOrders) {
+      if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
-        await parseSaleOrders(saleOrders);
+        const {sales, totalPrice} = parseSaleOrders(saleOrders);
+        
+
+        await SalesModel.saveSales(parsedSaleOrders);
+        await StatsModel.saveStats(orders, totalPrice);
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);
@@ -321,5 +324,6 @@ const execute = (): void => {
     }
   });
 };
+
 
 export { execute };
