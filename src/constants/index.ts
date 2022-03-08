@@ -25,6 +25,7 @@ export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
 export const JSON_RPC_MAINNET_KEYS = (() => {
   const apiKeys = [];
   let i = 0;
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const apiKey = getEnvironmentVariable(`JSON_RPC_MAINNET${i}`);

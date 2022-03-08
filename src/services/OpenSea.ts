@@ -146,8 +146,7 @@ export default class OpenSea {
 
   async getCollectionStatsByTokenInfo(
     collectionAddr: string,
-    tokenId: string,
-    chainId: string
+    tokenId: string
   ): Promise<CollectionStats> {
     const res: Response<{ collection: { stats: CollectionStats } }> = await this.errorHandler(() => {
       return this.client.get(`asset/${collectionAddr}/${tokenId}`, {
