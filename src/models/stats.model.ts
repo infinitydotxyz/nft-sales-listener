@@ -52,6 +52,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
     const promiseArray = [];
 
     // --- collectionStats all time ---
+    // todo : save chainId on top level doc
     docRefArray.push(collectionStatsRef);
     promiseArray.push(t.get(collectionStatsRef));
 
@@ -64,6 +65,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
     });
 
     // --- nftStats all time ---
+    // todo : save chainId on top level doc
     docRefArray.push(nftStatsRef);
     promiseArray.push(t.get(nftStatsRef));
 
