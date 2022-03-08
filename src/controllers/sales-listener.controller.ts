@@ -4,8 +4,9 @@ import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_AD
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
 import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
-import { handleNftTransactions } from './sales-parser.controller';
 import { logger } from '../container';
+import { sleep } from '@infinityxyz/lib/utils';
+import { parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -82,7 +83,7 @@ function handleBundleSale(inputs: DecodedAtomicMatchInputs): TokenInfo[] {
     collectionAddr: collectionAddrs[index],
     tokenIdStr: tokenIdsList[index],
     quantity: 1,
-    tokenType: 'ERC721'
+    tokenType: TOKEN_TYPE.ERC721
   }));
 }
 
@@ -104,7 +105,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
   let collectionAddr;
   let tokenIdStr;
   let quantity = 1;
-  let tokenType = 'ERC721';
+  let tokenType = TOKEN_TYPE.ERC721;
   const calldataBuy: string = inputs.calldataBuy;
 
   let offset = TRAILING_OX + METHOD_ID_LENGTH + UINT_256_LENGTH * 2;
@@ -115,7 +116,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 458) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
-      tokenType = 'ERC1155';
+      tokenType = TOKEN_TYPE.ERC1155;
     }
   } else {
     // Token minted on Opensea
@@ -124,7 +125,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 202) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
-      tokenType = 'ERC1155';
+      tokenType = TOKEN_TYPE.ERC1155;
     }
   }
 
@@ -149,8 +150,8 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
 
     const uints: BigInt[] = inputs.uints;
     const price: BigInt = uints[4];
-    const buyerAddress = addrs[1]; // Buyer.maker
-    const sellerAddress = addrs[8]; // Seller.maker
+    const buyer = addrs[1]; // Buyer.maker
+    const seller = addrs[8]; // Seller.maker
     const paymentTokenErc20Address = addrs[6];
 
     const res: NftSale = {
@@ -160,19 +161,20 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
       blockTimestamp: block.timestamp * 1000,
       price,
       paymentToken: paymentTokenErc20Address,
-      buyer: buyerAddress,
-      seller: sellerAddress,
+      buyer,
+      seller,
       collectionAddress: '',
       tokenId: '',
       quantity: 0,
       source: SALE_SOURCE.OPENSEA,
       tokenType: TOKEN_TYPE.ERC721
     };
+
     if (saleAddress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
       const token = handleSingleSale(inputs);
       res.collectionAddress = token.collectionAddr;
       res.tokenId = token.tokenIdStr;
-      res.tokenType = token.tokenType === 'ERC721' ? TOKEN_TYPE.ERC721 : TOKEN_TYPE.ERC1155;
+      res.tokenType = token.tokenType === TOKEN_TYPE.ERC721 ? TOKEN_TYPE.ERC721 : TOKEN_TYPE.ERC1155;
       res.quantity = token.quantity;
       return [res];
     } else {
@@ -193,10 +195,6 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
 
 const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesLike> => {
   return (await ethProvider.getTransaction(txHash)).data;
-};
-
-const sleep = async (ms: number): Promise<unknown> => {
-  return await new Promise((resolve) => setTimeout(resolve, ms));
 };
 
 // todo: check firestore collections
@@ -308,16 +306,14 @@ const execute = (): void => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
-      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
-        'atomicMatch_',
-        response as ethers.utils.BytesLike
-      ) as any;
-      const transactions = handleAtomicMatch_(decodedResponse, txHash, block);
-      if (transactions) {
-        logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
-        await handleNftTransactions(transactions);
+      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike) as any;
+      const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
+      if (saleOrders) {
+        logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
+        await parseSaleOrders(saleOrders);
       }
     } catch (err) {
+      logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);
       logger.error(err);
     }
   });

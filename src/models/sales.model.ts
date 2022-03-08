@@ -1,26 +1,26 @@
 import { firebase, logger } from '../container';
 import { NftSale } from '../types';
 import { SALES_COLL } from '../constants';
+import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
 /**
  * @description save the orders into <sales> collection
  */
-const handleOrders = async (orders: NftSale[]): Promise<FirebaseFirestore.WriteResult[]> => {
+const saveSales = async (orders: NftSale[]): Promise<void> => {
   try {
-    const firestore = firebase.db;
-    const batch = firestore.batch();
-    const SalesCollectionRef = firestore.collection(SALES_COLL);
+    const fsBatchHandler = new FirestoreBatchHandler();
+    const SalesCollectionRef = firebase.db.collection(SALES_COLL);
     orders.forEach((order) => {
       const docRef = SalesCollectionRef.doc();
-      batch.create(docRef, order);
+      fsBatchHandler.add(docRef, order, { merge: true });
     });
-    return batch.commit();
+    await fsBatchHandler.flush();
   } catch (err) {
-    logger.error('SalesModel:[handleOrders]', err);
+    logger.error('SalesModel:[saveSales]', err);
     throw err;
   }
 };
 
-const SalesModel = { handleOrders };
+const SalesModel = { saveSales };
 
 export default SalesModel;

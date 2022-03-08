@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { sleep } from '../utils';
+import { sleep } from '@infinityxyz/lib/utils';
 import { OPENSEA_API_KEY } from '../constants';
 import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import got, { Got, Response } from 'got/dist/source';
