@@ -163,6 +163,6 @@ const initStatsFromOS = async (
   return res;
 };
 
-const CollectionStatsModel = { handleOrders, initStatsFromOS };
+const StatsModel = { handleOrders, initStatsFromOS };
 
-export default CollectionStatsModel;
+export default StatsModel;
