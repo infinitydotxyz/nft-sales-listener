@@ -28,7 +28,7 @@ interface TokenInfo {
  *
  * @param inputs inputs AtomicMatch call that triggered the handleAtomicMatch_ call handler.
  * @description This function is used to handle the case of a "bundle" sale made from OpenSea.
- *              A "bundle" sale is a sale that contains several assets embeded in the same, atomic, transaction.
+ *              A "bundle" sale is a sale that contains several assets embedded in the same, atomic, transaction.
  */
 function handleBundleSale(inputs: DecodedAtomicMatchInputs): TokenInfo[] {
   const calldataBuy: string = inputs?.calldataBuy;
@@ -56,10 +56,10 @@ function handleBundleSale(inputs: DecodedAtomicMatchInputs): TokenInfo[] {
    * there are 2 chunks of params of length nbToken * UINT_256_LENGTH.
    *
    * Those chunks are each preceded by a "chunk metadata" of length UINT_256_LENGTH
-   * Finalluy a last "chunk metadata" is set of length UINT_256_LENGTH. (3 META_CHUNKS)
+   * Finally a last "chunk metadata" is set of length UINT_256_LENGTH. (3 META_CHUNKS)
    *
    *
-   * After that we are reading the abiencoded data representing the transferFrom calls
+   * After that we are reading the abi encoded data representing the transferFrom calls
    */
   const LEFT_CHUNKS = 2;
   const NB_META_CHUNKS = 3;
