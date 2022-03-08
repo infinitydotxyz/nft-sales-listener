@@ -31,8 +31,8 @@ interface TokenInfo {
  * @description This function is used to handle the case of a "bundle" sale made from OpenSea.
  *              A "bundle" sale is a sale that contains several assets embeded in the same, atomic, transaction.
  */
-function handleBundleSale(inputs: any): TokenInfo[] {
-  const calldataBuy: string = inputs.calldataBuy;
+function handleBundleSale(inputs: unknown): TokenInfo[] {
+  const calldataBuy: string = inputs.calldataBuy as string;
   const TRAILING_OX = 2;
   const METHOD_ID_LENGTH = 8;
   const UINT_256_LENGTH = 64;

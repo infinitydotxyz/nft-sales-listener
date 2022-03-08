@@ -18,9 +18,9 @@ export default class Firebase {
   constructor() {
     const serviceAccountFile = resolve(__dirname, `../../creds/${FIREBASE_SERVICE_ACCOUNT}`);
 
-    const serviceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8'));
+    const serviceAccount: ServiceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8')) as unknown as ServiceAccount;
     const app = firebaseAdmin.initializeApp({
-      credential: firebaseAdmin.credential.cert(serviceAccount as ServiceAccount),
+      credential: firebaseAdmin.credential.cert(serviceAccount ),
       storageBucket: FB_STORAGE_BUCKET
     });
     this.firebaseAdmin = app;
@@ -54,6 +54,7 @@ export default class Firebase {
 
   async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {
     let attempts = 0;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       attempts += 1;
       try {

@@ -1,4 +1,6 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable no-console */
+
 import { ERROR_LOG, INFO_LOG } from '../constants';
 import { singleton } from 'tsyringe';
 import { isMainThread } from 'worker_threads';

@@ -126,6 +126,7 @@ export default class Moralis {
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       attempt += 1;
       try {
@@ -178,11 +179,11 @@ export default class Moralis {
     let numResults = 0;
 
     while (hasNextPage) {
-      const res = await thunkedRequest(cursor);
+      const res:Response<Web3Response<T>> = await thunkedRequest(cursor);
 
       let body = res.body;
       if (typeof body === 'string') {
-        body = JSON.parse(body);
+        body = JSON.parse(body) as Web3Response<T>;
       }
 
       numResults += body.page_size;
