@@ -12,7 +12,7 @@ export const parseSaleOrders = async (sales: NftSale[]): Promise<void> => {
    * Skip the transactions without eth or weth as the payment. ex: usd, matic ...
    * */
   if (
-    sales[0].paymentToken !== NULL_ADDRESS ||
+    sales[0].paymentToken !== NULL_ADDRESS &&
     trimLowerCase(sales[0].paymentToken) !== trimLowerCase(ETHEREUM_WETH_ADDRESS)
   ) {
     return;
