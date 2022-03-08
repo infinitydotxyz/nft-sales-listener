@@ -38,4 +38,5 @@ export interface Stats {
   totalNumSales: number;
   avgPrice: number;
   updateAt: number;
+  isInitialized?: boolean;
 }

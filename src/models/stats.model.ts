@@ -40,7 +40,7 @@ const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'
   });
   const nftStatsRef = db.collection(NFT_STATS_COLL).doc(nftDocId);
 
-  let isEmpty = false;
+  let isInitialized = true;
 
   await db.runTransaction(async (t) => {
     const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
@@ -86,11 +86,12 @@ const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'
       if (prevStats) {
         t.update(docRef, getNewStats(prevStats, incomingStats));
       } else {
+        isInitialized = false;
         t.set(docRef, incomingStats);
       }
     }
   });
-  if (isEmpty) {
+  if (!isInitialized) {
     await addCollectionToQueue(orders[0].collectionAddress, orders[0].tokenId);
   }
 };
@@ -163,6 +164,25 @@ const initStatsFromOS = async (
   return res;
 };
 
-const StatsModel = { handleOrders, initStatsFromOS };
+const checkIfCollInitialized = async (collectionAddress: string, chainId = '1'): Promise<boolean> => {
+  const db = firebase.db;
+  const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${collectionAddress}`);
+  const data = (await collectionStatsRef.get()).data() as Stats | undefined;
+  return !!data?.isInitialized;
+};
+
+const setCollInitialization = async (collectionAddress: string, isInitialized = true, chainId = '1'): Promise<void> => {
+  const db = firebase.db;
+  await db.runTransaction(async (t) => {
+    const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${collectionAddress}`);
+
+    // Add one person to the city population.
+    // Note: this could be done without a transaction
+    //       by updating the population using FieldValue.increment()
+    t.update(collectionStatsRef, { isInitialized: true });
+  });
+};
+
+const StatsModel = { handleOrders, initStatsFromOS, checkIfCollInitialized, setCollInitialization };
 
 export default StatsModel;

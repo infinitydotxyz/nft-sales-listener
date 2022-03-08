@@ -12,8 +12,14 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
+    const isInitialized = await StatsModel.checkIfCollInitialized(collectionAddress);
+    if (isInitialized) return;
+
     const cs: CollectionStats = await openseaClient.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
     await StatsModel.initStatsFromOS(cs, collectionAddress);
+
+    await StatsModel.setCollInitialization(collectionAddress);
+
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
     logger.error('opensea-sales-listener: [initCollectionStatsFromOS]', { collectionAddress });
