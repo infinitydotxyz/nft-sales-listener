@@ -1,17 +1,22 @@
 import { ethers } from 'ethers';
 import { Block } from '@ethersproject/abstract-provider';
-import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
-import WyvernExchangeABI from '../../abi/wyvernExchange.json';
-import { getProviderByChainId } from '../utils';
+import {
+  WYVERN_EXCHANGE_ADDRESS,
+  MERKLE_VALIDATOR_ADDRESS,
+  WYVERN_ATOMICIZER_ADDRESS,
+  NULL_ADDRESS
+} from '../constants';
+import WyvernExchangeABI from '../abi/wyvernExchange.json';
+import Providers from '../models/Providers';
 import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
 import { handleNftTransactions } from './sales-parser.controller';
 import { logger, firebase } from '../container';
-import ERC721ABI from '../../abi/erc721Abi.json';
-import ERC1155ABI from '../../abi/erc1155Abi.json';
-import { NULL_ADDR } from '../constants';
+import ERC721ABI from '../abi/erc721Abi.json';
+import ERC1155ABI from '../abi/erc1155Abi.json';
 
 const ETH_CHAIN_ID = '1';
-const ethProvider = getProviderByChainId(ETH_CHAIN_ID);
+const providers = new Providers();
+const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
 
 interface TokenInfo {
   collectionAddr: string;
@@ -39,7 +44,9 @@ function handleBundleSale(inputs: any): TokenInfo[] {
   const collectionAddrs: string[] = [];
   let offset = indexStopNbToken;
   for (let i = 0; i < nbToken; i++) {
-    collectionAddrs.push(ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toHexString());
+    collectionAddrs.push(
+      ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toHexString()
+    );
 
     // Move forward in the call data
     offset += UINT_256_LENGTH;
@@ -214,7 +221,7 @@ const pruneERC721 = async (id: string, address: string) => {
       let owner = await contract.ownerOf(id);
       owner = owner.trim().toLowerCase();
 
-      if (owner !== NULL_ADDR && owner !== maker) {
+      if (owner !== NULL_ADDRESS && owner !== maker) {
         console.log('stale', maker, owner, address, id);
         ref
           .delete()
@@ -229,7 +236,7 @@ const pruneERC721 = async (id: string, address: string) => {
   } catch (err) {
     console.error('Error pruning listing', err);
   }
-}
+};
 
 // todo: check firestore collections
 const pruneERC1155 = async (id: string, address: string, seller: string) => {
@@ -251,7 +258,7 @@ const pruneERC1155 = async (id: string, address: string, seller: string) => {
 
       const balance = await contract.balanceOf(seller, id);
 
-      if (seller !== NULL_ADDR && seller === maker && balance === 0) {
+      if (seller !== NULL_ADDRESS && seller === maker && balance === 0) {
         console.log('stale', maker, seller, address, id);
         ref
           .delete()

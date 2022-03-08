@@ -1,17 +1,16 @@
 import { logger } from '../container';
 import { convertWeiToEther } from '../utils';
-import { NftTransaction, NftSalesRepository, SCRAPER_SOURCE, TOKEN_TYPE } from '../types';
-import { NULL_ADDR } from '../constants';
+import { NftTransaction, NftSalesRepository } from '../types';
+import { NULL_ADDRESS } from '../constants';
 
 import SalesModel from '../models/sales.model';
-import NftStatsModel from '../models/nft-stats.model';
-import CollectionStatsModel from '../models/collection-stats.model';
+import StatsModel from '../models/stats.model';
 
 export const handleNftTransactions = async (transactions: NftTransaction[], chainId = '1'): Promise<void> => {
   /**
    * Skip the transactions without ether as the payment. ex: usd, matic ...
    * */
-  if (transactions[0].paymentToken !== NULL_ADDR) {
+  if (transactions[0].paymentToken !== NULL_ADDRESS) {
     return;
   }
 
@@ -22,7 +21,7 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
         txHash: tx.txHash.trim().toLowerCase(),
         tokenId: tx.tokenIdStr,
         collectionAddress: tx.collectionAddr.trim().toLowerCase(),
-        price: totalPrice / transactions.length,
+        price: totalPrice / transactions.length / tx.quantity,
         paymentTokenType: tx.paymentToken,
         quantity: tx.quantity,
         buyer: tx.buyerAddress.trim().toLowerCase(),
@@ -34,9 +33,9 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
       return order;
     });
 
-    await SalesModel.handleOrders(orders);
-    await NftStatsModel.handleOrders(orders, totalPrice);
-    await CollectionStatsModel.handleOrders(orders, totalPrice);
+    const promiseArray = [SalesModel.handleOrders(orders), StatsModel.handleOrders(orders, totalPrice)];
+
+    await Promise.all(promiseArray);
   } catch (err) {
     logger.error('Sales-scraper:updateCollectionSalesInfo', err);
   }

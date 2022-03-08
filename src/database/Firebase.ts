@@ -15,7 +15,7 @@ export default class Firebase {
   bucket: Bucket;
 
   constructor() {
-    const serviceAccountFile = resolve(`./creds/${FIREBASE_SERVICE_ACCOUNT}`);
+    const serviceAccountFile = resolve(__dirname, `../../creds/${FIREBASE_SERVICE_ACCOUNT}`);
 
     const serviceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8'));
     const app = firebaseAdmin.initializeApp({

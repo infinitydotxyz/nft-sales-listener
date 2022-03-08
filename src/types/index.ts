@@ -43,16 +43,7 @@ export interface NftSalesRepository {
   blockTimestamp: number;
 }
 
-export interface CollectionStatsRepository {
-  floorPrice: number;
-  ceilPrice: number;
-  totalVolume: number;
-  totalNumSales: number;
-  avgPrice: number;
-  updateAt: number;
-}
-
-export interface NftStatsRepository {
+export interface StatsRepository {
   floorPrice: number;
   ceilPrice: number;
   totalVolume: number;

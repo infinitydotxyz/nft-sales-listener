@@ -36,7 +36,7 @@ export const JSON_RPC_MAINNET_KEYS = (() => {
   return apiKeys;
 })();
 
-export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
+export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /**
  *
@@ -45,4 +45,3 @@ export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
  */
 export const INFO_LOG = process.env.INFO_LOG !== 'false'; // explicity set to false to disable logs
 export const ERROR_LOG = process.env.ERROR_LOG !== 'false'; // explicitly set to false to disable logs
-

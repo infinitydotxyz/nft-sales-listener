@@ -1,55 +1,7 @@
 import crypto from 'crypto';
-import { logger, providers } from '../container';
-import { JsonRpcProvider } from '@ethersproject/providers';
-import { BASE_TIME, NftTransaction } from '../types';
+import { BASE_TIME } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
-
-/**
- *
- * @param date
- * @param baseTime
- * @returns Firestore historical document id ( sales info ) based on date and basetime
- *
- */
-export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {
-  const date = new Date(timestamp);
-  const firstDayOfWeek = date.getDate() - date.getDay();
-
-  switch (baseTime) {
-    case BASE_TIME.HOURLY:
-      return moment(date).format('YYYY-MM-DD-HH');
-    case BASE_TIME.DAILY:
-      return moment(date).format('YYYY-MM-DD');
-    case BASE_TIME.WEEKLY:
-      return moment(date.setDate(firstDayOfWeek)).format('YYYY-MM-DD');
-    case BASE_TIME.MONTHLY:
-      return moment(date).format('YYYY-MM');
-    case BASE_TIME.YEARLY:
-      return moment(date).format('YYYY');
-  }
-};
-
-export const convertWeiToEther = (price: BigInt): number => {
-  return parseFloat(ethers.utils.formatEther(price.toString()));
-};
-
-
-export function getProviderByChainId(chainId: string): JsonRpcProvider {
-  return providers.getProviderByChainId(chainId);
-}
-
-export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
-  const hashes = new Set();
-  return items.filter((item: T) => {
-    const property = propertySelector(item);
-    if (!hashes.has(property)) {
-      hashes.add(property);
-      return true;
-    }
-    return false;
-  });
-}
 
 export async function sleep(duration: number): Promise<void> {
   return await new Promise<void>((resolve) => {
@@ -79,10 +31,29 @@ export function randomItem<T>(array: T[]): T {
 
 /**
  *
- * @description  tokenIds can be big in some cases and we might run into firestore doc name length limit
+ * @param date
+ * @param baseTime
+ * @returns Firestore historical document id ( sales info ) based on date and basetime
  *
  */
-export const getHashByNftAddress = (chainId: string, collectionAddress: string, tokenId: string): string => {
-  const data = chainId + collectionAddress.trim() + tokenId.trim();
-  return crypto.createHash('sha256').update(data).digest('hex').trim().toLowerCase();
+export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {
+  const date = new Date(timestamp);
+  const firstDayOfWeek = date.getDate() - date.getDay();
+
+  switch (baseTime) {
+    case BASE_TIME.HOURLY:
+      return moment(date).format('YYYY-MM-DD-HH');
+    case BASE_TIME.DAILY:
+      return moment(date).format('YYYY-MM-DD');
+    case BASE_TIME.WEEKLY:
+      return moment(date.setDate(firstDayOfWeek)).format('YYYY-MM-DD');
+    case BASE_TIME.MONTHLY:
+      return moment(date).format('YYYY-MM');
+    case BASE_TIME.YEARLY:
+      return moment(date).format('YYYY');
+  }
+};
+
+export const convertWeiToEther = (price: BigInt): number => {
+  return parseFloat(ethers.utils.formatEther(price.toString()));
 };
