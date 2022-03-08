@@ -1,10 +1,6 @@
 import { ethers } from 'ethers';
 import { Block } from '@ethersproject/abstract-provider';
-import {
-  WYVERN_EXCHANGE_ADDRESS,
-  MERKLE_VALIDATOR_ADDRESS,
-  WYVERN_ATOMICIZER_ADDRESS
-} from '../constants';
+import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
 import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
@@ -17,9 +13,9 @@ const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
 
 type DecodedAtomicMatchInputs = {
   calldataBuy: string;
-  addrs: string[],
-  uints: BigInt[]
-}
+  addrs: string[];
+  uints: BigInt[];
+};
 
 interface TokenInfo {
   collectionAddr: string;
@@ -146,11 +142,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(
-  inputs: DecodedAtomicMatchInputs,
-  txHash: string,
-  block: Block
-): NftSale[] | undefined {
+function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, block: Block): NftSale[] | undefined {
   try {
     const addrs: string[] = inputs.addrs;
     const saleAddress: string = addrs[11];
@@ -316,7 +308,10 @@ const execute = (): void => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
-      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike) as any;
+      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
+        'atomicMatch_',
+        response as ethers.utils.BytesLike
+      ) as any;
       const transactions = handleAtomicMatch_(decodedResponse, txHash, block);
       if (transactions) {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);

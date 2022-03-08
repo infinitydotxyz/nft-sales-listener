@@ -33,7 +33,11 @@ const handleOrders = async (orders: NftSale[], totalPrice: number, chainId = '1'
 
   const collectionStatsRef = db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${orders[0].collectionAddress}`);
 
-  const nftDocId = getDocIdHash({chainId, collectionAddress: orders[0].collectionAddress, tokenId: orders[0].tokenId});
+  const nftDocId = getDocIdHash({
+    chainId,
+    collectionAddress: orders[0].collectionAddress,
+    tokenId: orders[0].tokenId
+  });
   const nftStatsRef = db.collection(NFT_STATS_COLL).doc(nftDocId);
 
   let isEmpty = false;

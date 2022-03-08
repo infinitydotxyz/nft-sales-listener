@@ -5,7 +5,7 @@ export const DBN_ALL_TIME = 'all-time';
 export const NFT_STATS_COLL = 'nftStats';
 export const DBN_HISTORY = 'history';
 export const SALES_COLL = 'sales';
-export const NFTS_COLL = 'nfts';;
+export const NFTS_COLL = 'nfts';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';

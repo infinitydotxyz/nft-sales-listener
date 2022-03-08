@@ -179,7 +179,7 @@ export default class Moralis {
     let numResults = 0;
 
     while (hasNextPage) {
-      const res:Response<Web3Response<T>> = await thunkedRequest(cursor);
+      const res: Response<Web3Response<T>> = await thunkedRequest(cursor);
 
       let body = res.body;
       if (typeof body === 'string') {

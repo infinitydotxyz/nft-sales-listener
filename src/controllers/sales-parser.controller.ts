@@ -31,7 +31,7 @@ export const handleNftTransactions = async (transactions: NftSale[]): Promise<vo
         seller: trimLowerCase(tx.seller),
         source: tx.source,
         blockNumber: tx.blockNumber,
-        blockTimestamp: tx.blockTimestamp,
+        blockTimestamp: tx.blockTimestamp
       };
       return order;
     });
