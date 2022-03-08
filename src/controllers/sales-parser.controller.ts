@@ -39,8 +39,8 @@ export const parseSaleOrders = async (sales: NftSale[]): Promise<void> => {
       return order;
     });
 
-    SalesModel.saveSales(orders);
-    StatsModel.saveStats(orders, totalPrice);
+    await SalesModel.saveSales(orders);
+    await StatsModel.saveStats(orders, totalPrice);
   } catch (err) {
     logger.error('Failed saving orders to firestore', err);
   }

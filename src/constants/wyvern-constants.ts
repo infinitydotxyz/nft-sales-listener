@@ -16,6 +16,6 @@ export const WYVERN_EXCHANGE_ADDRESS = '0x7f268357a8c2552623316e2562d90e642bb538
 export const WYVERN_ATOMICIZER_ADDRESS = '0xc99f70bfd82fb7c8f8191fdfbfb735606b15e5c5';
 
 /**
- * Librabry used by OpenSea for merkle validator.
+ * Library used by OpenSea for merkle validator.
  */
 export const MERKLE_VALIDATOR_ADDRESS = '0xbaf2127b49fc93cbca6269fade0f7f31df4c88a7';

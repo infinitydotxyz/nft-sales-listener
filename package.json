@@ -2,13 +2,19 @@
   "name": "nft-sales-listener",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node": "16.x.x",
+    "npm": "8.x.x"
+  },
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run update:lib && npm run clean && tsc",
     "clean": "rimraf ./dist",
-    "lint": "eslint .",
-    "lintfix": "eslint --fix .",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint --fix .",
+    "fmt:check": "prettier -c ./src",
+    "fmt:write": "prettier -w ./src",
     "start": "cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
     "dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/index.ts",
     "update:lib": "npm update @infinityxyz/lib"
@@ -21,17 +27,16 @@
     "@types/mime-types": "^2.1.1",
     "@types/node": "^17.0.14",
     "@typescript-eslint/eslint-plugin": "^5.14.0",
+    "@typescript-eslint/parser": "^5.14.0",
     "cross-env": "^7.0.3",
+    "eslint": "^8.10.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-config-standard": "^16.0.3",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-eslint-comments": "^3.2.0",
     "moment": "^2.29.1",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.7.0",
-    "typescript": "^4.5.5"
+    "typescript": "^4.6.2"
   },
   "dependencies": {
     "@infinityxyz/lib": "^1.1.2",

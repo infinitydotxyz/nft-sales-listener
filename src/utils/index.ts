@@ -24,7 +24,7 @@ export function randomItem<T>(array: T[]): T {
  *
  * @param date
  * @param baseTime
- * @returns Firestore historical document id ( sales info ) based on date and basetime
+ * @returns Firestore historical document id ( sales info ) based on date and base time
  *
  */
 export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {

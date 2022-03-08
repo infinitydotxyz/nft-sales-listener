@@ -5,7 +5,7 @@ export const DBN_ALL_TIME = 'all-time';
 export const NFT_STATS_COLL = 'nftStats';
 export const DBN_HISTORY = 'history';
 export const SALES_COLL = 'sales';
-export const NFTS_COLL = 'nfts';;
+export const NFTS_COLL = 'nfts';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
@@ -25,6 +25,7 @@ export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
 export const JSON_RPC_MAINNET_KEYS = (() => {
   const apiKeys = [];
   let i = 0;
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const apiKey = getEnvironmentVariable(`JSON_RPC_MAINNET${i}`);

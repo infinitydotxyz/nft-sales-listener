@@ -1,3 +1,5 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import PQueue from 'p-queue';
 import { CollectionStats } from '../services/OpenSea';
 import StatsModel from '../models/stats.model';
@@ -11,7 +13,7 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
-    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
+    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId);
     await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
