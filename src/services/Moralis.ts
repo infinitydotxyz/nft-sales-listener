@@ -1,5 +1,5 @@
 import got, { Got, Response } from 'got';
-import { TokenStandard, TokenMetadata } from '@infinityxyz/types/core';
+import { TokenStandard, TokenMetadata } from '@infinityxyz/lib/types/core';
 import { sleep } from '../utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
