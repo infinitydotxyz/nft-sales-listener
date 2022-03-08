@@ -165,8 +165,13 @@ const saveInitialCollectionStats = async (
   await batchHandler.flush();
 };
 
-const getCollStats = () => {};
+const getCollStats = async (collectionAddress: string, chainId: string): Promise<Stats | undefined> => {
+  const firestore = firebase.db;
+  const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
+  const stats = (await statsRef.get()).data() as Stats | undefined;
+  return stats;
+};
 
-const StatsModel = { saveStats, saveInitialCollectionStats };
+const StatsModel = { saveStats, saveInitialCollectionStats, getCollStats };
 
 export default StatsModel;

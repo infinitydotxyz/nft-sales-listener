@@ -13,7 +13,10 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
-    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId);
+    const collStats = await StatsModel.getCollStats(collectionAddress, chainId);
+    if (collStats && collStats.isInitialized) return;
+
+    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId, chainId);
     await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
