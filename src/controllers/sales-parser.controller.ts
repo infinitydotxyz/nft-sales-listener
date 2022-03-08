@@ -11,7 +11,10 @@ export const parseSaleOrders = async (sales: NftSale[]): Promise<void> => {
   /**
    * Skip the transactions without eth or weth as the payment. ex: usd, matic ...
    * */
-  if (sales[0].paymentToken !== NULL_ADDRESS || trimLowerCase(sales[0].paymentToken) !== trimLowerCase(ETHEREUM_WETH_ADDRESS)) {
+  if (
+    sales[0].paymentToken !== NULL_ADDRESS ||
+    trimLowerCase(sales[0].paymentToken) !== trimLowerCase(ETHEREUM_WETH_ADDRESS)
+  ) {
     return;
   }
 
@@ -36,8 +39,8 @@ export const parseSaleOrders = async (sales: NftSale[]): Promise<void> => {
       return order;
     });
 
-    SalesModel.saveSales(orders)
-    StatsModel.saveStats(orders, totalPrice);
+    await SalesModel.saveSales(orders);
+    await StatsModel.saveStats(orders, totalPrice);
   } catch (err) {
     logger.error('Failed saving orders to firestore', err);
   }

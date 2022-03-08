@@ -96,7 +96,11 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
   }
 };
 
-const saveInitialCollectionStats = (cs: CollectionStats, collectionAddress: string, chainId = '1') => {
+const saveInitialCollectionStats = async (
+  cs: CollectionStats,
+  collectionAddress: string,
+  chainId = '1'
+): Promise<void> => {
   const firestore = firebase.db;
   const batchHandler = new FirestoreBatchHandler();
 
@@ -158,7 +162,7 @@ const saveInitialCollectionStats = (cs: CollectionStats, collectionAddress: stri
   );
 
   // commit
-  batchHandler.flush();
+  await batchHandler.flush();
 };
 
 const CollectionStatsModel = { saveStats, saveInitialCollectionStats };

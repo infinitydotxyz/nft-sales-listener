@@ -41,6 +41,7 @@ export default class FirestoreBatchHandler {
       let attempt = 0;
       const batch = this.currentBatch.batch;
       this.currentBatch = this.newBatch();
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         attempt += 1;
         try {

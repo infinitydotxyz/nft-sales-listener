@@ -1,23 +1,22 @@
 import { ethers } from 'ethers';
 import { Block } from '@ethersproject/abstract-provider';
-import {
-  WYVERN_EXCHANGE_ADDRESS,
-  MERKLE_VALIDATOR_ADDRESS,
-  WYVERN_ATOMICIZER_ADDRESS,
-  NULL_ADDRESS
-} from '../constants';
+import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
 import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
-import { parseSaleOrders } from './sales-parser.controller';
-import { logger, firebase } from '../container';
-import ERC721ABI from '../abi/erc721Abi.json';
-import ERC1155ABI from '../abi/erc1155Abi.json';
+import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
+import { parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
 const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
+
+type DecodedAtomicMatchInputs = {
+  calldataBuy: string;
+  addrs: string[];
+  uints: BigInt[];
+};
 
 interface TokenInfo {
   collectionAddr: string;
@@ -30,10 +29,10 @@ interface TokenInfo {
  *
  * @param inputs inputs AtomicMatch call that triggered the handleAtomicMatch_ call handler.
  * @description This function is used to handle the case of a "bundle" sale made from OpenSea.
- *              A "bundle" sale is a sale that contains several assets embeded in the same, atomic, transaction.
+ *              A "bundle" sale is a sale that contains several assets embedded in the same, atomic, transaction.
  */
-function handleBundleSale(inputs: any): TokenInfo[] {
-  const calldataBuy: string = inputs.calldataBuy;
+function handleBundleSale(inputs: DecodedAtomicMatchInputs): TokenInfo[] {
+  const calldataBuy: string = inputs?.calldataBuy;
   const TRAILING_OX = 2;
   const METHOD_ID_LENGTH = 8;
   const UINT_256_LENGTH = 64;
@@ -58,10 +57,10 @@ function handleBundleSale(inputs: any): TokenInfo[] {
    * there are 2 chunks of params of length nbToken * UINT_256_LENGTH.
    *
    * Those chunks are each preceded by a "chunk metadata" of length UINT_256_LENGTH
-   * Finalluy a last "chunk metadata" is set of length UINT_256_LENGTH. (3 META_CHUNKS)
+   * Finally a last "chunk metadata" is set of length UINT_256_LENGTH. (3 META_CHUNKS)
    *
    *
-   * After that we are reading the abiencoded data representing the transferFrom calls
+   * After that we are reading the abi encoded data representing the transferFrom calls
    */
   const LEFT_CHUNKS = 2;
   const NB_META_CHUNKS = 3;
@@ -95,7 +94,7 @@ function handleBundleSale(inputs: any): TokenInfo[] {
  *              A "normal" sale is a sale that is not a bundle (only contains one asset).
  */
 
-function handleSingleSale(inputs: any): TokenInfo {
+function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
   const TRAILING_OX = 2;
   const METHOD_ID_LENGTH = 8;
   const UINT_256_LENGTH = 64;
@@ -144,9 +143,9 @@ function handleSingleSale(inputs: any): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftSale[] | undefined {
+function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, block: Block): NftSale[] | undefined {
   try {
-    const addrs = inputs.addrs;
+    const addrs: string[] = inputs.addrs;
     const saleAddress: string = addrs[11];
 
     const uints: BigInt[] = inputs.uints;
@@ -199,79 +198,81 @@ const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesL
 };
 
 // todo: check firestore collections
-const pruneERC721 = async (id: string, address: string) => {
-  console.log('Pruning ERC721', id, address);
-  const query = await firebase.db
-    .collectionGroup('listings')
-    .where('metadata.asset.id', '==', id)
-    .where('metadata.asset.address', '==', address)
-    .limit(100)
-    .get();
+// const pruneERC721 = async (id: string, address: string) => {
+//   logger.log('Pruning ERC721', id, address);
+//   const query = await firebase.db
+//     .collectionGroup('listings')
+//     .where('metadata.asset.id', '==', id)
+//     .where('metadata.asset.address', '==', address)
+//     .limit(100)
+//     .get();
 
-  const contract = new ethers.Contract(address, ERC721ABI, ethProvider);
-  try {
-    for (let i = 0; i < query.docs.length; i++) {
-      const doc = query.docs[i];
-      const ref = doc.ref;
-      const data = doc.data();
-      const maker = data.maker;
+//   const contract = new ethers.Contract(address, ERC721ABI, ethProvider);
+//   try {
+//     for (let i = 0; i < query.docs.length; i++) {
+//       const doc = query.docs[i];
+//       const ref = doc.ref;
+//       const data = doc.data();
+//       const maker: string = data.maker as string;
 
-      let owner = await contract.ownerOf(id);
-      owner = owner.trim().toLowerCase();
+//       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+//       let owner: string = await contract.ownerOf(id);
+//       owner = trimLowerCase(owner);
 
-      if (owner !== NULL_ADDRESS && owner !== maker) {
-        console.log('stale', maker, owner, address, id);
-        ref
-          .delete()
-          .then((res) => {
-            console.log('pruned', doc.id, maker, owner, address, id);
-          })
-          .catch((err) => {
-            console.error('Error deleting', doc.id, maker, err);
-          });
-      }
-    }
-  } catch (err) {
-    console.error('Error pruning listing', err);
-  }
-};
+//       if (owner !== NULL_ADDRESS && owner !== maker) {
+//         logger.log('stale', maker, owner, address, id);
+//         ref
+//           .delete()
+//           .then(() => {
+//             logger.log('pruned', doc.id, maker, owner, address, id);
+//           })
+//           .catch((err) => {
+//             logger.error('Error deleting', doc.id, maker, err);
+//           });
+//       }
+//     }
+//   } catch (err) {
+//     logger.error('Error pruning listing', err);
+//   }
+// };
 
 // todo: check firestore collections
-const pruneERC1155 = async (id: string, address: string, seller: string) => {
-  console.log('Pruning ERC1155', id, address);
-  const query = await firebase.db
-    .collectionGroup('listings')
-    .where('metadata.asset.id', '==', id)
-    .where('metadata.asset.address', '==', address)
-    .limit(100)
-    .get();
+// const pruneERC1155 = async (id: string, address: string, seller: string) => {
+//   logger.log('Pruning ERC1155', id, address);
+//   const query = await firebase.db
+//     .collectionGroup('listings')
+//     .where('metadata.asset.id', '==', id)
+//     .where('metadata.asset.address', '==', address)
+//     .limit(100)
+//     .get();
 
-  const contract = new ethers.Contract(address, ERC1155ABI, ethProvider);
-  try {
-    for (let i = 0; i < query.docs.length; i++) {
-      const doc = query.docs[i];
-      const ref = doc.ref;
-      const data = doc.data();
-      const maker = data.maker;
+//   const contract = new ethers.Contract(address, ERC1155ABI, ethProvider);
+//   try {
+//     for (let i = 0; i < query.docs.length; i++) {
+//       const doc = query.docs[i];
+//       const ref = doc.ref;
+//       const data = doc.data();
+//       const maker = data.maker;
 
-      const balance = await contract.balanceOf(seller, id);
+//       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+//       const balance = await contract.balanceOf(seller, id);
 
-      if (seller !== NULL_ADDRESS && seller === maker && balance === 0) {
-        console.log('stale', maker, seller, address, id);
-        ref
-          .delete()
-          .then((res) => {
-            console.log('pruned', doc.id, maker, seller, address, id);
-          })
-          .catch((err) => {
-            console.error('Error deleting', doc.id, maker, err);
-          });
-      }
-    }
-  } catch (err) {
-    console.error('Error pruning listing', err);
-  }
-};
+//       if (seller !== NULL_ADDRESS && seller === maker && balance === 0) {
+//         logger.log('stale', maker, seller, address, id);
+//         ref
+//           .delete()
+//           .then(() => {
+//             logger.log('pruned', doc.id, maker, seller, address, id);
+//           })
+//           .catch((err) => {
+//             logger.error('Error deleting', doc.id, maker, err);
+//           });
+//       }
+//     }
+//   } catch (err) {
+//     logger.error('Error pruning listing', err);
+//   }
+// };
 
 const execute = (): void => {
   /*
@@ -280,7 +281,7 @@ const execute = (): void => {
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
-  OpenseaContract.on('OrdersMatched', async (...args) => {
+  OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return;
     }
@@ -305,7 +306,10 @@ const execute = (): void => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
-      const decodedResponse = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike);
+      const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
+        'atomicMatch_',
+        response as ethers.utils.BytesLike
+      ) as any;
       const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
       if (saleOrders) {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);

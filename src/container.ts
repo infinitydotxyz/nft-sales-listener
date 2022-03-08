@@ -1,4 +1,4 @@
-import { container, delay } from 'tsyringe';
+import { container } from 'tsyringe';
 import Firebase from 'database/Firebase';
 import Moralis from 'services/Moralis';
 import Logger from 'utils/Logger';
