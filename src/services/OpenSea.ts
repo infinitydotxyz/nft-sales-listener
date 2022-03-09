@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 import { sleep } from '@infinityxyz/lib/utils';
-import { OPENSEA_API_KEY } from '../constants';
+import { OPENSEA_API_KEYS } from '../constants';
 import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
+import { randomItem } from 'utils';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -35,8 +36,20 @@ export default class OpenSea {
   constructor() {
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
-      headers: {
-        'x-api-key': OPENSEA_API_KEY
+      hooks: {
+        init: [
+          (options) => {
+            if(!options?.headers?.['x-api-key']) {
+
+              if(!options.headers) {
+                options.headers = {}
+              }
+
+              const randomApiKey = randomItem(OPENSEA_API_KEYS);
+              options.headers['x-api-key'] = randomApiKey;
+            }
+          }
+        ]
       },
       /**
        * requires us to check status code
