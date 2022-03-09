@@ -19,7 +19,7 @@ export interface NftSale {
   chainId: string;
   txHash: string;
   blockNumber: number;
-  blockTimestamp: number;
+  timestamp: number;
   collectionAddress: string;
   tokenId: string;
   price: BigInt | number;

@@ -54,7 +54,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
       totalVolume: totalPrice,
       totalNumSales,
       avgPrice: orders[0].price as number,
-      updatedAt: orders[0].blockTimestamp,
+      updatedAt: orders[0].timestamp,
     };
 
     const docRefArray = [];
@@ -67,7 +67,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
 
     // --- collectionStats other time periods ---
     Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].blockTimestamp, baseTime as BASE_TIME);
+      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
       const docRef = collectionStatsRef.collection(baseTime).doc(docId);
       promiseArray.push(t.get(docRef));
       docRefArray.push(docRef);
@@ -80,7 +80,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
 
     // --- nftStats other time periods ---
     Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].blockTimestamp, baseTime as BASE_TIME);
+      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
       const docRef = nftStatsRef.collection(baseTime).doc(docId);
       promiseArray.push(t.get(docRef));
       docRefArray.push(docRef);

@@ -44,7 +44,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
       totalVolume: data.totalPrice,
       totalNumSales,
       avgPrice: data.sales[0].price as number,
-      updatedAt: data.sales[0].blockTimestamp
+      updatedAt: data.sales[0].timestamp
     };
     return incomingStats;
   }
@@ -58,7 +58,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     totalVolume: data.price as number,
     totalNumSales: 1,
     avgPrice: data.price as number,
-    updatedAt: data.blockTimestamp
+    updatedAt: data.timestamp
   };
   return incomingStats;
 }
@@ -175,7 +175,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
      */
     for (const baseTime of [...Object.values(BASE_TIME), 'total']) {
       for (const transaction of validTransactions) {
-        const time = transaction.sales[0].blockTimestamp;
+        const time = transaction.sales[0].timestamp;
         const collectionDocRef = getDocumentRefByTime(
           time,
           baseTime as BASE_TIME | 'total',
