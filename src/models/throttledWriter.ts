@@ -7,19 +7,13 @@ import { getDocumentIdByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
 
+type Transaction = { sales: NftSale[]; totalPrice: number };
+
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
 };
 
-function writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
-  const salesCollectionRef = firebase.db.collection(SALES_COLL);
-  for (const sale of sales) {
-    const docRef = salesCollectionRef.doc();
-    tx.create(docRef, sale);
-  }
-}
-
-function getIncomingStats(transaction: { sales: NftSale[]; totalPrice: number }): Stats {
+function getIncomingStats(transaction: Transaction): Stats {
   const totalNumSales = transaction.sales.length > 1 ? transaction.sales.length : transaction.sales[0].quantity;
   const incomingStats: Stats = {
     floorPrice: transaction.sales[0].price as number,
@@ -32,12 +26,12 @@ function getIncomingStats(transaction: { sales: NftSale[]; totalPrice: number })
   return incomingStats;
 }
 
-export function throttledWriter() {
+export function throttledWriter(): EventEmitter {
   const collections: Map<string, { data: SalesData; throttledWrite: Promise<void> }> = new Map();
 
   const emitter = new EventEmitter();
 
-  async function updateCollectionSales(transactions: { sales: NftSale[]; totalPrice: number }[]) {
+  async function updateCollectionSales(transactions: Transaction[]) {
     /**
      * we can have a max of 500 writes in one firestore tx
      *
@@ -53,33 +47,30 @@ export function throttledWriter() {
     /**
      * group transactions into batches with a max of MAX_SALES per batch
      */
-    const batches = transactions.reduce(
-      (batches: { size: number; transactions: { sales: NftSale[]; totalPrice: number }[] }[], item) => {
-        let batch = batches.pop();
-        if (!batch) {
-          batch = {
-            size: 0,
-            transactions: []
-          };
-        }
+    const batches = transactions.reduce((batches: { size: number; transactions: Transaction[] }[], item) => {
+      let batch = batches.pop();
+      if (!batch) {
+        batch = {
+          size: 0,
+          transactions: []
+        };
+      }
 
-        if (batch.size + item.sales.length <= MAX_SALES) {
-          batch.transactions.push(item);
-          batch.size += item.sales.length;
-          batches.unshift(batch);
-        } else {
-          batches.unshift(batch);
-          const newBatch = {
-            size: item.sales.length,
-            transactions: [item]
-          };
-          batches.unshift(newBatch);
-        }
+      if (batch.size + item.sales.length <= MAX_SALES) {
+        batch.transactions.push(item);
+        batch.size += item.sales.length;
+        batches.unshift(batch);
+      } else {
+        batches.unshift(batch);
+        const newBatch = {
+          size: item.sales.length,
+          transactions: [item]
+        };
+        batches.unshift(newBatch);
+      }
 
-        return batches;
-      },
-      []
-    );
+      return batches;
+    }, []);
 
     for (const batch of batches) {
       try {
@@ -90,7 +81,7 @@ export function throttledWriter() {
     }
   }
 
-  emitter.on('sales', ({ sales, totalPrice }: { sales: NftSale[]; totalPrice: number }) => {
+  emitter.on('sales', ({ sales, totalPrice }: Transaction) => {
     if (Array.isArray(sales) && sales.length > 0) {
       const collectionAddress = sales[0].collectionAddress;
       if (!collections.get(collectionAddress)) {
@@ -126,7 +117,7 @@ export function throttledWriter() {
   return emitter;
 }
 
-async function updateCollectionSalesHelper(transactions: { sales: NftSale[]; totalPrice: number }[]) {
+async function updateCollectionSalesHelper(transactions: Transaction[]) {
   const chainId = transactions[0].sales[0].chainId;
   const collectionAddress = trimLowerCase(transactions[0].sales[0].collectionAddress);
   const collectionStatsRef = firebase.db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${collectionAddress}`);
@@ -287,10 +278,11 @@ async function updateCollectionSalesHelper(transactions: { sales: NftSale[]; tot
   });
 }
 
-async function getUnsavedTransactions(
-  transactions: { sales: NftSale[]; totalPrice: number }[]
-): Promise<{ sales: NftSale[]; totalPrice: number }[]> {
-  const promises: { promise: Promise<boolean>; transaction: { sales: NftSale[]; totalPrice: number } }[] = [];
+/**
+ * filters transactions by those that don't yet exist in the db
+ */
+async function getUnsavedTransactions(transactions: Transaction[]): Promise<Transaction[]> {
+  const promises: { promise: Promise<boolean>; transaction: Transaction }[] = [];
   for (const transaction of transactions) {
     const txHash = transaction.sales[0].txHash;
     promises.push({
@@ -298,7 +290,6 @@ async function getUnsavedTransactions(
       transaction
     });
   }
-
   await Promise.all(promises.map((item) => item.promise));
 
   const unsavedTransactions = promises.filter(async (item) => await item.promise).map((item) => item.transaction);
@@ -306,7 +297,15 @@ async function getUnsavedTransactions(
 }
 
 async function transactionExists(txHash: string): Promise<boolean> {
-  const query = firebase.db.collection(SALES_COLL).where('txHash', '==', txHash);
+  const query = firebase.db.collection(SALES_COLL).where('txHash', '==', txHash).limit(1);
   const data = await query.get();
   return !data.empty;
+}
+
+function writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
+  const salesCollectionRef = firebase.db.collection(SALES_COLL);
+  for (const sale of sales) {
+    const docRef = salesCollectionRef.doc();
+    tx.create(docRef, sale);
+  }
 }
