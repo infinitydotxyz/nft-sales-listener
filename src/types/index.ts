@@ -32,6 +32,7 @@ export interface NftSale {
 }
 
 export interface Stats {
+  chainId: string;
   floorPrice: number;
   ceilPrice: number;
   totalVolume: number;

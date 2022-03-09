@@ -3,7 +3,6 @@
 
 import { ERROR_LOG, INFO_LOG } from '../constants';
 import { singleton } from 'tsyringe';
-import { isMainThread } from 'worker_threads';
 
 @singleton()
 export default class Logger {
@@ -43,9 +42,7 @@ export default class Logger {
     });
 
     process.on('exit', (code) => {
-      if (isMainThread) {
         this.log(`Process exiting... Code: ${code}`);
-      }
     });
   }
 }

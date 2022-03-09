@@ -7,7 +7,11 @@ import { CollectionStats } from '../services/OpenSea';
 import { getDocIdHash, trimLowerCase } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
-export const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
+export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
+  if(!prevStats) {
+    return incomingStats;
+  }
+
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
@@ -16,7 +20,8 @@ export const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
     totalVolume,
     totalNumSales,
     avgPrice: totalVolume / totalNumSales,
-    updateAt: incomingStats.updateAt
+    updateAt: incomingStats.updateAt,
+    chainId: incomingStats.chainId
   };
 };
 
@@ -45,7 +50,8 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
       totalVolume: totalPrice,
       totalNumSales,
       avgPrice: orders[0].price as number,
-      updateAt: orders[0].blockTimestamp
+      updateAt: orders[0].blockTimestamp,
+      chainId
     };
 
     const docRefArray = [];
@@ -112,7 +118,8 @@ const saveInitialCollectionStats = async (
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
-    updateAt: timestamp
+    updateAt: timestamp,
+    chainId
   };
   batchHandler.add(statsRef, totalInfo, { merge: true });
 

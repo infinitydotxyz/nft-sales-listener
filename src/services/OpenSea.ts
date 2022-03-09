@@ -3,7 +3,7 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { OPENSEA_API_KEYS } from '../constants';
 import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import got, { Got, Response } from 'got/dist/source';
-import { gotErrorHandler } from '../utils/got';
+import { gotErrorHandler } from 'utils/got';
 import { randomItem } from 'utils';
 
 /**
@@ -37,7 +37,7 @@ export default class OpenSea {
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
       hooks: {
-        init: [
+        beforeRequest: [
           (options) => {
             if(!options?.headers?.['x-api-key']) {
 
