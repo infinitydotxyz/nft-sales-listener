@@ -11,6 +11,7 @@ const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
+    chainId: prevStats.chainId,
     floorPrice: Math.min(prevStats.floorPrice, incomingStats.floorPrice),
     ceilPrice: Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
     totalVolume,
@@ -40,6 +41,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
   await db.runTransaction(async (t) => {
     const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
     const incomingStats: Stats = {
+      chainId,
       floorPrice: orders[0].price as number,
       ceilPrice: orders[0].price as number,
       totalVolume: totalPrice,
@@ -106,6 +108,7 @@ const saveInitialCollectionStats = async (
   const timestamp = Date.now();
   const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
   const totalInfo: Stats = {
+    chainId,
     floorPrice: cs.floor_price,
     ceilPrice: 0,
     totalVolume: cs.total_volume,
@@ -121,6 +124,7 @@ const saveInitialCollectionStats = async (
   batchHandler.add(
     dailyRef,
     {
+      chainId,
       floorPrice: 0,
       ceilPrice: 0,
       totalVolume: cs.one_day_volume,
@@ -136,6 +140,7 @@ const saveInitialCollectionStats = async (
   batchHandler.add(
     weekRef,
     {
+      chainId,
       floorPrice: 0,
       ceilPrice: 0,
       totalVolume: cs.seven_day_volume,
@@ -151,6 +156,7 @@ const saveInitialCollectionStats = async (
   batchHandler.add(
     monthlyRef,
     {
+      chainId,
       floorPrice: 0,
       ceilPrice: 0,
       totalVolume: cs.thirty_day_volume,
