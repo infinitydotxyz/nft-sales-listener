@@ -195,8 +195,10 @@ async function updateCollectionSalesHelper(transactions: { sales: NftSale[]; tot
     /**
      * add transactions to total
      */
-    const totalStatsRef = firebase.db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
-    for(const transaction of validTransactions) {
+    const totalStatsRef = firebase.db
+      .collection(COLLECTION_STATS_COLL)
+      .doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
+    for (const transaction of validTransactions) {
       addTransactionToDocs(totalStatsRef, transaction);
     }
 
@@ -236,7 +238,6 @@ async function updateCollectionSalesHelper(transactions: { sales: NftSale[]; tot
       writeSales(transaction.sales, tx); // one write per sale
     }
 
-
     let addedToQueue = false;
     /**
      * aggregate collection level stats and save updates
@@ -246,7 +247,7 @@ async function updateCollectionSalesHelper(transactions: { sales: NftSale[]; tot
       const statsToMerge = docToUpdate.transactionsToAggregate.map((txn) => getIncomingStats(txn));
       if (existingStats) {
         statsToMerge.unshift(existingStats);
-      } else if(!addedToQueue) { 
+      } else if (!addedToQueue) {
         const tokenId = validTransactions[0].sales[0].tokenId;
         addCollectionToQueue(collectionAddress, tokenId).catch((err) => {
           logger.error(err);

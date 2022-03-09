@@ -4,7 +4,7 @@ import { NftSale } from '../types';
 import { NULL_ADDRESS } from '../constants';
 import { trimLowerCase, ETHEREUM_WETH_ADDRESS } from '@infinityxyz/lib/utils';
 
-export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[], totalPrice: number}  => {
+export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[]; totalPrice: number } => {
   /**
    * Skip the transactions without eth or weth as the payment. ex: usd, matic ...
    * */
@@ -16,7 +16,7 @@ export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[], totalPric
   }
 
   try {
-    const totalPrice = convertWeiToEther(sales[0].price as BigInt); 
+    const totalPrice = convertWeiToEther(sales[0].price as BigInt);
     const orders: NftSale[] = sales.map((tx: NftSale) => {
       const order: NftSale = {
         chainId: tx.chainId,
