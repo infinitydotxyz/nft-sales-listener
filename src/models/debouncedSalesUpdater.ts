@@ -44,7 +44,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
       totalVolume: data.totalPrice,
       totalNumSales,
       avgPrice: data.sales[0].price as number,
-      updateAt: data.sales[0].blockTimestamp
+      updatedAt: data.sales[0].blockTimestamp
     };
     return incomingStats;
   }
@@ -58,7 +58,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     totalVolume: data.price as number,
     totalNumSales: 1,
     avgPrice: data.price as number,
-    updateAt: data.blockTimestamp
+    updatedAt: data.blockTimestamp
   };
   return incomingStats;
 }

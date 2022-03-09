@@ -20,7 +20,7 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
     totalVolume,
     totalNumSales,
     avgPrice: totalVolume / totalNumSales,
-    updateAt: incomingStats.updateAt,
+    updatedAt: incomingStats.updatedAt,
     chainId: incomingStats.chainId,
     collectionAddress: incomingStats.collectionAddress,
     tokenId: incomingStats.tokenId,
@@ -54,7 +54,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
       totalVolume: totalPrice,
       totalNumSales,
       avgPrice: orders[0].price as number,
-      updateAt: orders[0].blockTimestamp,
+      updatedAt: orders[0].blockTimestamp,
     };
 
     const docRefArray = [];
@@ -123,7 +123,7 @@ const saveInitialCollectionStats = async (
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
-    updateAt: timestamp,
+    updatedAt: timestamp,
   };
   batchHandler.add(statsRef, totalInfo, { merge: true });
 
@@ -137,7 +137,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.one_day_volume,
       totalNumSales: cs.one_day_sales,
       avgPrice: cs.one_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );
@@ -152,7 +152,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.seven_day_volume,
       totalNumSales: cs.seven_day_sales,
       avgPrice: cs.seven_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );
@@ -167,7 +167,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.thirty_day_volume,
       totalNumSales: cs.thirty_day_sales,
       avgPrice: cs.thirty_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );

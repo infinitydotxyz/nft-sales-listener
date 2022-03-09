@@ -40,5 +40,5 @@ export interface Stats {
   totalVolume: number;
   totalNumSales: number;
   avgPrice: number;
-  updateAt: number;
+  updatedAt: number;
 }
