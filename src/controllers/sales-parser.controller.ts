@@ -9,14 +9,14 @@ export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[], totalPric
    * Skip the transactions without eth or weth as the payment. ex: usd, matic ...
    * */
   if (
-    sales[0].paymentToken !== NULL_ADDRESS ||
+    sales[0].paymentToken !== NULL_ADDRESS &&
     trimLowerCase(sales[0].paymentToken) !== trimLowerCase(ETHEREUM_WETH_ADDRESS)
   ) {
     return { sales: [], totalPrice: 0 };
   }
 
   try {
-    const totalPrice = convertWeiToEther(sales[0].price as BigInt);
+    const totalPrice = convertWeiToEther(sales[0].price as BigInt); 
     const orders: NftSale[] = sales.map((tx: NftSale) => {
       const order: NftSale = {
         chainId: tx.chainId,

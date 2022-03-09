@@ -13,8 +13,13 @@ const initCollectionStatsFromOS = async (
   chainId: string
 ): Promise<void> => {
   try {
-    const cs: CollectionStats = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId);
-    await StatsModel.saveInitialCollectionStats(cs, collectionAddress);
+    const { stats: inaccurateStats, slug } = await opensea.getCollectionStatsByTokenInfo(collectionAddress, tokenId);
+    if (!slug) {
+      throw new Error(`Invalid collection slug: ${slug}`);
+    }
+
+    const { stats } = await opensea.getCollectionStats(slug);
+    await StatsModel.saveInitialCollectionStats(stats, collectionAddress);
     logger.log(`--- Wrote CollectionStats from OpenSea: [${collectionAddress}]`);
   } catch (err) {
     logger.error('Failed fetching initial collection stats from opensea for', chainId, collectionAddress, err);

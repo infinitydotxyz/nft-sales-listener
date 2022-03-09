@@ -144,8 +144,8 @@ export default class OpenSea {
     return collection;
   }
 
-  async getCollectionStatsByTokenInfo(collectionAddr: string, tokenId: string): Promise<CollectionStats> {
-    const res: Response<{ collection: { stats: CollectionStats } }> = await this.errorHandler(() => {
+  async getCollectionStatsByTokenInfo(collectionAddr: string, tokenId: string): Promise<{ stats: CollectionStats, slug: string}> {
+    const res: Response<{ collection: { stats: CollectionStats, slug: string } }> = await this.errorHandler(() => {
       return this.client.get(`asset/${collectionAddr}/${tokenId}`, {
         responseType: 'json'
       });
@@ -153,7 +153,7 @@ export default class OpenSea {
 
     const collectionStats = res?.body?.collection.stats ?? {};
 
-    return collectionStats;
+    return { stats: collectionStats, slug: res?.body?.collection?.slug };
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
@@ -171,7 +171,7 @@ export default class OpenSea {
             return res;
 
           case 404:
-            throw new Error('Not found');
+            throw new Error(`Not found: ${res.requestUrl}`);
 
           case 429:
             await sleep(5000);

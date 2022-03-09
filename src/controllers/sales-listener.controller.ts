@@ -9,6 +9,7 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
 import SalesModel from 'models/sales.model';
 import StatsModel from 'models/stats.model';
+import { throttledWriter } from 'models/throttledWriter.ts';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -282,6 +283,7 @@ const execute = (): void => {
   */
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
+  const salesEmitter = throttledWriter();
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
@@ -314,9 +316,9 @@ const execute = (): void => {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
         const {sales, totalPrice} = parseSaleOrders(saleOrders);
         
-
-        await SalesModel.saveSales(parsedSaleOrders);
-        await StatsModel.saveStats(orders, totalPrice);
+        salesEmitter.emit('sales', {sales, totalPrice});
+        // await SalesModel.saveSales(parsedSaleOrders);
+        // await StatsModel.saveStats(orders, totalPrice);
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);

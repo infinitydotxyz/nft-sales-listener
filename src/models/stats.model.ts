@@ -7,7 +7,7 @@ import { CollectionStats } from '../services/OpenSea';
 import { getDocIdHash, trimLowerCase } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
-const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
+export const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
