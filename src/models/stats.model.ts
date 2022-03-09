@@ -21,7 +21,9 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
     totalNumSales,
     avgPrice: totalVolume / totalNumSales,
     updateAt: incomingStats.updateAt,
-    chainId: incomingStats.chainId
+    chainId: incomingStats.chainId,
+    collectionAddress: incomingStats.collectionAddress,
+    tokenId: incomingStats.tokenId,
   };
 };
 
@@ -45,13 +47,14 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
   await db.runTransaction(async (t) => {
     const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
     const incomingStats: Stats = {
+      chainId,
+      collectionAddress: trimLowerCase(orders[0].collectionAddress),
       floorPrice: orders[0].price as number,
       ceilPrice: orders[0].price as number,
       totalVolume: totalPrice,
       totalNumSales,
       avgPrice: orders[0].price as number,
       updateAt: orders[0].blockTimestamp,
-      chainId
     };
 
     const docRefArray = [];
@@ -113,13 +116,14 @@ const saveInitialCollectionStats = async (
   const timestamp = Date.now();
   const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
   const totalInfo: Stats = {
+    chainId,
+    collectionAddress,
     floorPrice: cs.floor_price,
     ceilPrice: 0,
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
     updateAt: timestamp,
-    chainId
   };
   batchHandler.add(statsRef, totalInfo, { merge: true });
 

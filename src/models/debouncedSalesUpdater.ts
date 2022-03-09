@@ -7,39 +7,60 @@ import { getDocumentRefByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
 
+/**
+ * represents an ethereum transaction containing sales of one or more nfts
+ */
 type Transaction = { sales: NftSale[]; totalPrice: number };
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
 };
 
+/**
+ * we can have a max of 500 writes in one firestore tx
+ *
+ * <= 10 writes to update collection level stats
+ * <= 5 * num sales writes to update token level stats
+ * 1 write to save  each sale
+ *
+ * 500 - 10 = 490
+ * 490 / 6 = 81.66
+ */
+const MAX_SALES_PER_BATCH = 80;
+
+/**
+ * time that collection sales will idle for until being written to the db
+ */
 const DEBOUNCE_INTERVAL = 60_000;
 
 function getIncomingStats(data: Transaction | NftSale): Stats {
   if ('totalPrice' in data) {
-    const totalNumSales = data.sales.length > 1 ? data.sales.length : data.sales[0].quantity;
+    const totalNumSales = data.sales.reduce((sum, sale) => sum + sale.quantity, 0);
     const incomingStats: Stats = {
+      chainId: data.sales[0].chainId,
+      collectionAddress: data.sales[0].collectionAddress,
       floorPrice: data.sales[0].price as number,
       ceilPrice: data.sales[0].price as number,
       totalVolume: data.totalPrice,
       totalNumSales,
       avgPrice: data.sales[0].price as number,
-      updateAt: data.sales[0].blockTimestamp,
-      chainId: data.sales[0].chainId
-    };
-    return incomingStats;
-  } else {
-    const incomingStats: Stats = {
-      floorPrice: data.price as number,
-      ceilPrice: data.price as number,
-      totalVolume: data.price as number,
-      totalNumSales: 1,
-      avgPrice: data.price as number,
-      updateAt: data.blockTimestamp,
-      chainId: data.chainId
+      updateAt: data.sales[0].blockTimestamp
     };
     return incomingStats;
   }
+
+  const incomingStats: Stats = {
+    chainId: data.chainId,
+    collectionAddress: data.collectionAddress,
+    tokenId: data.tokenId,
+    floorPrice: data.price as number,
+    ceilPrice: data.price as number,
+    totalVolume: data.price as number,
+    totalNumSales: 1,
+    avgPrice: data.price as number,
+    updateAt: data.blockTimestamp
+  };
+  return incomingStats;
 }
 
 export function debouncedSalesUpdater(): EventEmitter {
@@ -48,18 +69,6 @@ export function debouncedSalesUpdater(): EventEmitter {
   const emitter = new EventEmitter();
 
   async function updateCollectionSales(transactions: Transaction[]) {
-    /**
-     * we can have a max of 500 writes in one firestore tx
-     *
-     * <= 10 writes to update collection level stats
-     * <= 5 * num sales writes to update token level stats
-     * 1 write to save  each sale
-     *
-     * 500 - 10 = 490
-     * 490 / 6 = 81.66
-     */
-    const MAX_SALES = 80;
-
     /**
      * group transactions into batches with a max of MAX_SALES per batch
      */
@@ -72,7 +81,7 @@ export function debouncedSalesUpdater(): EventEmitter {
         };
       }
 
-      if (batch.size + item.sales.length <= MAX_SALES) {
+      if (batch.size + item.sales.length <= MAX_SALES_PER_BATCH) {
         batch.transactions.push(item);
         batch.size += item.sales.length;
         batches.unshift(batch);
@@ -183,7 +192,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
             chainId,
             sale.tokenId
           );
-          addToUpdates(tokenDocRef, transaction);
+          addToUpdates(tokenDocRef, sale);
         }
       }
     }
@@ -202,7 +211,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
 
     let addedToQueue = false;
     /**
-     * aggregate collection level stats and save updates
+     * aggregate stats and save to db
      */
     for (const docToUpdate of Object.values(updates)) {
       const existingStats = (await docToUpdate.currentSnapshot).data() as Stats | undefined; // this has already resolved
