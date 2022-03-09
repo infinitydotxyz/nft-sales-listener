@@ -1,9 +1,10 @@
 import { ethers } from 'ethers';
 import { sleep } from '@infinityxyz/lib/utils';
-import { OPENSEA_API_KEY } from '../constants';
+import { OPENSEA_API_KEYS } from '../constants';
 import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import got, { Got, Response } from 'got/dist/source';
-import { gotErrorHandler } from '../utils/got';
+import { gotErrorHandler } from 'utils/got';
+import { randomItem } from 'utils';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -35,8 +36,20 @@ export default class OpenSea {
   constructor() {
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
-      headers: {
-        'x-api-key': OPENSEA_API_KEY
+      hooks: {
+        beforeRequest: [
+          (options) => {
+            if(!options?.headers?.['x-api-key']) {
+
+              if(!options.headers) {
+                options.headers = {}
+              }
+
+              const randomApiKey = randomItem(OPENSEA_API_KEYS);
+              options.headers['x-api-key'] = randomApiKey;
+            }
+          }
+        ]
       },
       /**
        * requires us to check status code
@@ -144,8 +157,11 @@ export default class OpenSea {
     return collection;
   }
 
-  async getCollectionStatsByTokenInfo(collectionAddr: string, tokenId: string): Promise<CollectionStats> {
-    const res: Response<{ collection: { stats: CollectionStats } }> = await this.errorHandler(() => {
+  async getCollectionStatsByTokenInfo(
+    collectionAddr: string,
+    tokenId: string
+  ): Promise<{ stats: CollectionStats; slug: string }> {
+    const res: Response<{ collection: { stats: CollectionStats; slug: string } }> = await this.errorHandler(() => {
       return this.client.get(`asset/${collectionAddr}/${tokenId}`, {
         responseType: 'json'
       });
@@ -153,7 +169,7 @@ export default class OpenSea {
 
     const collectionStats = res?.body?.collection.stats ?? {};
 
-    return collectionStats;
+    return { stats: collectionStats, slug: res?.body?.collection?.slug };
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
@@ -171,7 +187,7 @@ export default class OpenSea {
             return res;
 
           case 404:
-            throw new Error('Not found');
+            throw new Error(`Not found: ${res.requestUrl}`);
 
           case 429:
             await sleep(5000);

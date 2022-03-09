@@ -7,6 +7,7 @@ import { SALE_SOURCE, TOKEN_TYPE, NftSale } from '../types/index';
 import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
+import { debouncedSalesUpdater } from 'models/debouncedSalesUpdater';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -280,6 +281,7 @@ const execute = (): void => {
   */
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
+  const salesEmitter = debouncedSalesUpdater();
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
@@ -311,9 +313,11 @@ const execute = (): void => {
         response as ethers.utils.BytesLike
       ) as any;
       const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
-      if (saleOrders) {
+      if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
-        await parseSaleOrders(saleOrders);
+        const { sales, totalPrice } = parseSaleOrders(saleOrders);
+
+        salesEmitter.emit('sales', { sales, totalPrice });
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);

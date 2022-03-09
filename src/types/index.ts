@@ -19,7 +19,7 @@ export interface NftSale {
   chainId: string;
   txHash: string;
   blockNumber: number;
-  blockTimestamp: number;
+  timestamp: number;
   collectionAddress: string;
   tokenId: string;
   price: BigInt | number;
@@ -32,10 +32,13 @@ export interface NftSale {
 }
 
 export interface Stats {
+  chainId: string;
+  collectionAddress: string;
+  tokenId?: string;
   floorPrice: number;
   ceilPrice: number;
   totalVolume: number;
   totalNumSales: number;
   avgPrice: number;
-  updateAt: number;
+  updatedAt: number;
 }

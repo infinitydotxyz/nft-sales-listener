@@ -7,7 +7,11 @@ import { CollectionStats } from '../services/OpenSea';
 import { getDocIdHash, trimLowerCase } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
-const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
+export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
+  if(!prevStats) {
+    return incomingStats;
+  }
+
   const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
@@ -16,7 +20,10 @@ const getNewStats = (prevStats: Stats, incomingStats: Stats): Stats => {
     totalVolume,
     totalNumSales,
     avgPrice: totalVolume / totalNumSales,
-    updateAt: incomingStats.updateAt
+    updatedAt: incomingStats.updatedAt,
+    chainId: incomingStats.chainId,
+    collectionAddress: incomingStats.collectionAddress,
+    tokenId: incomingStats.tokenId,
   };
 };
 
@@ -40,12 +47,14 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
   await db.runTransaction(async (t) => {
     const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
     const incomingStats: Stats = {
+      chainId,
+      collectionAddress: trimLowerCase(orders[0].collectionAddress),
       floorPrice: orders[0].price as number,
       ceilPrice: orders[0].price as number,
       totalVolume: totalPrice,
       totalNumSales,
       avgPrice: orders[0].price as number,
-      updateAt: orders[0].blockTimestamp
+      updatedAt: orders[0].timestamp,
     };
 
     const docRefArray = [];
@@ -58,7 +67,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
 
     // --- collectionStats other time periods ---
     Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].blockTimestamp, baseTime as BASE_TIME);
+      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
       const docRef = collectionStatsRef.collection(baseTime).doc(docId);
       promiseArray.push(t.get(docRef));
       docRefArray.push(docRef);
@@ -71,7 +80,7 @@ const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): 
 
     // --- nftStats other time periods ---
     Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].blockTimestamp, baseTime as BASE_TIME);
+      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
       const docRef = nftStatsRef.collection(baseTime).doc(docId);
       promiseArray.push(t.get(docRef));
       docRefArray.push(docRef);
@@ -107,12 +116,14 @@ const saveInitialCollectionStats = async (
   const timestamp = Date.now();
   const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
   const totalInfo: Stats = {
+    chainId,
+    collectionAddress,
     floorPrice: cs.floor_price,
     ceilPrice: 0,
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
-    updateAt: timestamp
+    updatedAt: timestamp,
   };
   batchHandler.add(statsRef, totalInfo, { merge: true });
 
@@ -126,7 +137,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.one_day_volume,
       totalNumSales: cs.one_day_sales,
       avgPrice: cs.one_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );
@@ -141,7 +152,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.seven_day_volume,
       totalNumSales: cs.seven_day_sales,
       avgPrice: cs.seven_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );
@@ -156,7 +167,7 @@ const saveInitialCollectionStats = async (
       totalVolume: cs.thirty_day_volume,
       totalNumSales: cs.thirty_day_sales,
       avgPrice: cs.thirty_day_average_price,
-      updateAt: timestamp
+      updatedAt: timestamp
     },
     { merge: true }
   );
