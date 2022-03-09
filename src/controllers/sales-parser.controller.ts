@@ -31,7 +31,7 @@ export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[]; totalPric
         seller: trimLowerCase(tx.seller),
         source: tx.source,
         blockNumber: tx.blockNumber,
-        blockTimestamp: tx.blockTimestamp
+        timestamp: tx.timestamp
       };
       return order;
     });

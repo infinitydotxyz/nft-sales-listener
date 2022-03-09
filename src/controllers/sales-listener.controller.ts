@@ -159,7 +159,7 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
       chainId: ETH_CHAIN_ID,
       txHash,
       blockNumber: block.number,
-      blockTimestamp: block.timestamp * 1000,
+      timestamp: block.timestamp * 1000,
       price,
       paymentToken: paymentTokenErc20Address,
       buyer,
