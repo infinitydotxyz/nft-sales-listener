@@ -1,10 +1,9 @@
 import { firebase } from '../container';
-import { addCollectionToQueue } from '../controllers/sales-collection-initializer.controller';
 import { getDocumentIdByTime } from '../utils';
-import { BASE_TIME, NftSale, Stats } from '../types';
-import { COLLECTION_STATS_COLL, NFT_STATS_COLL } from '../constants';
+import { BASE_TIME, Stats } from '../types';
+import { COLLECTION_STATS_COLL } from '../constants';
 import { CollectionStats } from '../services/OpenSea';
-import { getDocIdHash, trimLowerCase } from '@infinityxyz/lib/utils';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
 export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
@@ -25,84 +24,6 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
     collectionAddress: incomingStats.collectionAddress,
     tokenId: incomingStats.tokenId,
   };
-};
-
-/**
- * @description save stats
- */
-const saveStats = async (orders: NftSale[], totalPrice: number, chainId = '1'): Promise<void> => {
-  const db = firebase.db;
-  const collectionStatsRef = db
-    .collection(COLLECTION_STATS_COLL)
-    .doc(`${chainId}:(${trimLowerCase(orders[0].collectionAddress)}`);
-  const nftDocId = getDocIdHash({
-    chainId,
-    collectionAddress: orders[0].collectionAddress,
-    tokenId: orders[0].tokenId
-  });
-  const nftStatsRef = db.collection(NFT_STATS_COLL).doc(nftDocId);
-
-  let isEmpty = false;
-
-  await db.runTransaction(async (t) => {
-    const totalNumSales = orders.length >= 2 ? orders.length : orders[0].quantity;
-    const incomingStats: Stats = {
-      chainId,
-      collectionAddress: trimLowerCase(orders[0].collectionAddress),
-      floorPrice: orders[0].price as number,
-      ceilPrice: orders[0].price as number,
-      totalVolume: totalPrice,
-      totalNumSales,
-      avgPrice: orders[0].price as number,
-      updatedAt: orders[0].timestamp,
-    };
-
-    const docRefArray = [];
-    const promiseArray = [];
-
-    // --- collectionStats all time ---
-    // todo : save chainId on top level doc
-    docRefArray.push(collectionStatsRef);
-    promiseArray.push(t.get(collectionStatsRef));
-
-    // --- collectionStats other time periods ---
-    Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
-      const docRef = collectionStatsRef.collection(baseTime).doc(docId);
-      promiseArray.push(t.get(docRef));
-      docRefArray.push(docRef);
-    });
-
-    // --- nftStats all time ---
-    // todo : save chainId on top level doc
-    docRefArray.push(nftStatsRef);
-    promiseArray.push(t.get(nftStatsRef));
-
-    // --- nftStats other time periods ---
-    Object.values(BASE_TIME).forEach((baseTime) => {
-      const docId = getDocumentIdByTime(orders[0].timestamp, baseTime as BASE_TIME);
-      const docRef = nftStatsRef.collection(baseTime).doc(docId);
-      promiseArray.push(t.get(docRef));
-      docRefArray.push(docRef);
-    });
-
-    const dataArray = await Promise.all(promiseArray);
-
-    for (let i = 0; i < docRefArray.length; i++) {
-      const prevStats = dataArray[i].data() as Stats | undefined;
-      const docRef = docRefArray[i];
-      if (prevStats) {
-        t.update(docRef, getNewStats(prevStats, incomingStats));
-      } else {
-        isEmpty = true;
-        t.set(docRef, incomingStats);
-      }
-    }
-  });
-  // todo: this gets called on all empty stats for individual nfts, not just the collection
-  if (isEmpty) {
-    await addCollectionToQueue(orders[0].collectionAddress, orders[0].tokenId);
-  }
 };
 
 const saveInitialCollectionStats = async (
@@ -176,6 +97,6 @@ const saveInitialCollectionStats = async (
   await batchHandler.flush();
 };
 
-const CollectionStatsModel = { saveStats, saveInitialCollectionStats };
+const CollectionStatsModel = { saveInitialCollectionStats };
 
 export default CollectionStatsModel;

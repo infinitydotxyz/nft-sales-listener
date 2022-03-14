@@ -1,3 +1,5 @@
+import { TokenStandard } from "@infinityxyz/lib/types/core";
+
 export enum SALE_SOURCE {
   OPENSEA = 'OPENSEA'
 }
@@ -15,6 +17,22 @@ export enum BASE_TIME {
   YEARLY = 'yearly'
 }
 
+export interface PreParsedNftSale {
+  chainId: string;
+  txHash: string;
+  blockNumber: number;
+  timestamp: number;
+  collectionAddress: string;
+  tokenId: string;
+  price: BigInt;
+  paymentToken: string;
+  buyer: string;
+  seller: string;
+  quantity: number;
+  source: SALE_SOURCE;
+  tokenType: TokenStandard;
+}
+
 export interface NftSale {
   chainId: string;
   txHash: string;
@@ -22,13 +40,13 @@ export interface NftSale {
   timestamp: number;
   collectionAddress: string;
   tokenId: string;
-  price: BigInt | number;
+  price: number;
   paymentToken: string;
   buyer: string;
   seller: string;
   quantity: number;
   source: SALE_SOURCE;
-  tokenType: TOKEN_TYPE;
+  tokenType: TokenStandard;
 }
 
 export interface Stats {

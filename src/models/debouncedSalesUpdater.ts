@@ -10,7 +10,7 @@ import { addCollectionToQueue } from 'controllers/sales-collection-initializer.c
 /**
  * represents an ethereum transaction containing sales of one or more nfts
  */
-type Transaction = { sales: NftSale[]; totalPrice: number };
+export type Transaction = { sales: NftSale[]; totalPrice: number };
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
@@ -39,11 +39,11 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     const incomingStats: Stats = {
       chainId: data.sales[0].chainId,
       collectionAddress: data.sales[0].collectionAddress,
-      floorPrice: data.sales[0].price as number,
-      ceilPrice: data.sales[0].price as number,
+      floorPrice: data.sales[0].price ,
+      ceilPrice: data.sales[0].price ,
       totalVolume: data.totalPrice,
       totalNumSales,
-      avgPrice: data.sales[0].price as number,
+      avgPrice: data.sales[0].price ,
       updatedAt: data.sales[0].timestamp
     };
     return incomingStats;
@@ -53,17 +53,17 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     chainId: data.chainId,
     collectionAddress: data.collectionAddress,
     tokenId: data.tokenId,
-    floorPrice: data.price as number,
-    ceilPrice: data.price as number,
-    totalVolume: data.price as number,
+    floorPrice: data.price,
+    ceilPrice: data.price,
+    totalVolume: data.price,
     totalNumSales: 1,
-    avgPrice: data.price as number,
+    avgPrice: data.price,
     updatedAt: data.timestamp
   };
   return incomingStats;
 }
 
-export function debouncedSalesUpdater(): EventEmitter {
+export function debouncedSalesUpdater(onTransactionSaved: (transaction: Transaction) => void): EventEmitter {
   const collections: Map<string, { data: SalesData; throttledWrite: Promise<void> }> = new Map();
 
   const emitter = new EventEmitter();
@@ -99,7 +99,7 @@ export function debouncedSalesUpdater(): EventEmitter {
 
     for (const batch of batches) {
       try {
-        await updateCollectionSalesHelper(batch.transactions);
+        await updateCollectionSalesHelper(batch.transactions, onTransactionSaved);
       } catch (err) {
         logger.error(err);
       }
@@ -142,12 +142,13 @@ export function debouncedSalesUpdater(): EventEmitter {
   return emitter;
 }
 
-async function updateCollectionSalesHelper(transactions: Transaction[]) {
+async function updateCollectionSalesHelper(transactions: Transaction[], onTransactionSaved: (transaction: Transaction) => void) {
   const chainId = transactions[0].sales[0].chainId;
   const collectionAddress = trimLowerCase(transactions[0].sales[0].collectionAddress);
 
+  let validTransactions: Transaction[] = [];
   await firebase.db.runTransaction(async (tx) => {
-    const validTransactions = await getUnsavedTransactions(transactions);
+    validTransactions = await getUnsavedTransactions(transactions);
 
     const updates: {
       [refPath: string]: {
@@ -252,6 +253,11 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
       }
     }
   });
+
+  for(const tx of validTransactions) {
+    onTransactionSaved(tx);
+  }
+
 }
 
 /**
