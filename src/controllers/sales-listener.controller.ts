@@ -283,13 +283,7 @@ const execute = (): void => {
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
-
-  const onTransactionSaved = (transaction: Transaction) => {
-    logger.log(transaction);
-    return;
-  }
-
-  const salesEmitter = debouncedSalesUpdater(onTransactionSaved);
+  const salesEmitter = debouncedSalesUpdater();
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {

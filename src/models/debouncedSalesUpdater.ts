@@ -1,4 +1,4 @@
-import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
@@ -63,7 +63,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
   return incomingStats;
 }
 
-export function debouncedSalesUpdater(onTransactionSaved: (transaction: Transaction) => void): EventEmitter {
+export function debouncedSalesUpdater(): EventEmitter {
   const collections: Map<string, { data: SalesData; throttledWrite: Promise<void> }> = new Map();
 
   const emitter = new EventEmitter();
@@ -99,7 +99,7 @@ export function debouncedSalesUpdater(onTransactionSaved: (transaction: Transact
 
     for (const batch of batches) {
       try {
-        await updateCollectionSalesHelper(batch.transactions, onTransactionSaved);
+        await updateCollectionSalesHelper(batch.transactions);
       } catch (err) {
         logger.error(err);
       }
@@ -108,41 +108,52 @@ export function debouncedSalesUpdater(onTransactionSaved: (transaction: Transact
 
   emitter.on('sales', ({ sales, totalPrice }: Transaction) => {
     if (Array.isArray(sales) && sales.length > 0) {
-      const collectionAddress = sales[0].collectionAddress;
-      if (!collections.get(collectionAddress)) {
-        const throttledWrite = (collectionAddress: string): Promise<void> => {
-          return new Promise<void>((resolve) => {
-            setTimeout(async () => {
-              try {
-                logger.log(`Saving collection: ${collectionAddress}`);
-                const collection = collections.get(collectionAddress);
-                collections.delete(collectionAddress);
-                if (collection?.data) {
-                  await updateCollectionSales(collection.data.transactions);
+      const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
+        if(!acc[sale.collectionAddress]) {
+          acc[sale.collectionAddress] = [];
+        } 
+        acc[sale.collectionAddress].push(sale);
+
+        return acc;
+      }, {});
+
+      for(const [collectionAddress, sales] of Object.entries(salesByCollection)) {
+        if (!collections.get(collectionAddress)) {
+          const throttledWrite = (collectionAddress: string): Promise<void> => {
+            return new Promise<void>((resolve) => {
+              setTimeout(async () => {
+                try {
+                  
+                  const collection = collections.get(collectionAddress);
+                  logger.log(`Saving collection: ${collectionAddress}`);
+
+                  collections.delete(collectionAddress);
+                  if (collection?.data) {
+                    await updateCollectionSales(collection.data.transactions);
+                  }
+                  resolve();
+                } catch (err) {
+                  logger.error(err);
+                  resolve();
                 }
-                resolve();
-              } catch (err) {
-                logger.error(err);
-                resolve();
-              }
-            }, DEBOUNCE_INTERVAL);
+              }, DEBOUNCE_INTERVAL);
+            });
+          };
+          collections.set(collectionAddress, {
+            data: { transactions: [{ sales, totalPrice }] },
+            throttledWrite: throttledWrite(collectionAddress)
           });
-        };
-        collections.set(collectionAddress, {
-          data: { transactions: [{ sales, totalPrice }] },
-          throttledWrite: throttledWrite(collectionAddress)
-        });
-      } else {
-        const collectionData = collections.get(collectionAddress);
-        collectionData?.data.transactions.push({ sales, totalPrice });
+        } else {
+          const collectionData = collections.get(collectionAddress);
+          collectionData?.data.transactions.push({ sales, totalPrice });
+        } 
       }
     }
   });
-
   return emitter;
 }
 
-async function updateCollectionSalesHelper(transactions: Transaction[], onTransactionSaved: (transaction: Transaction) => void) {
+async function updateCollectionSalesHelper(transactions: Transaction[]) {
   const chainId = transactions[0].sales[0].chainId;
   const collectionAddress = trimLowerCase(transactions[0].sales[0].collectionAddress);
 
@@ -253,11 +264,6 @@ async function updateCollectionSalesHelper(transactions: Transaction[], onTransa
       }
     }
   });
-
-  for(const tx of validTransactions) {
-    onTransactionSaved(tx);
-  }
-
 }
 
 /**
