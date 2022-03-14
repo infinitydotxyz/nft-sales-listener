@@ -39,11 +39,11 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     const incomingStats: Stats = {
       chainId: data.sales[0].chainId,
       collectionAddress: data.sales[0].collectionAddress,
-      floorPrice: data.sales[0].price ,
-      ceilPrice: data.sales[0].price ,
-      totalVolume: data.totalPrice,
+      floorPrice: data.sales[0].price,
+      ceilPrice: data.sales[0].price,
+      totalVolume: data.sales[0].price * totalNumSales, // TODO total price may  
       totalNumSales,
-      avgPrice: data.sales[0].price ,
+      avgPrice: data.sales[0].price,
       updatedAt: data.sales[0].timestamp
     };
     return incomingStats;
@@ -106,7 +106,7 @@ export function debouncedSalesUpdater(): EventEmitter {
     }
   }
 
-  emitter.on('sales', ({ sales, totalPrice }: Transaction) => {
+  emitter.on('sales', ({ sales }: Transaction) => {
     if (Array.isArray(sales) && sales.length > 0) {
       const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
         if(!acc[sale.collectionAddress]) {
@@ -118,12 +118,12 @@ export function debouncedSalesUpdater(): EventEmitter {
       }, {});
 
       for(const [collectionAddress, sales] of Object.entries(salesByCollection)) {
+        const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0); 
         if (!collections.get(collectionAddress)) {
           const throttledWrite = (collectionAddress: string): Promise<void> => {
             return new Promise<void>((resolve) => {
               setTimeout(async () => {
                 try {
-                  
                   const collection = collections.get(collectionAddress);
                   logger.log(`Saving collection: ${collectionAddress}`);
 
@@ -140,12 +140,12 @@ export function debouncedSalesUpdater(): EventEmitter {
             });
           };
           collections.set(collectionAddress, {
-            data: { transactions: [{ sales, totalPrice }] },
+            data: { transactions: [{ sales, totalPrice: totalSalePriceInCollection }] },
             throttledWrite: throttledWrite(collectionAddress)
           });
         } else {
           const collectionData = collections.get(collectionAddress);
-          collectionData?.data.transactions.push({ sales, totalPrice });
+          collectionData?.data.transactions.push({ sales, totalPrice: totalSalePriceInCollection });
         } 
       }
     }
