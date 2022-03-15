@@ -1,5 +1,5 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import { SALES_COLL } from '../constants';
+import { COLLECTION_SERVICE_URL, SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
 import { BASE_TIME, Stats } from 'types';
@@ -8,6 +8,7 @@ import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
 import { NftSale } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
+import { enqueueCollection, ResponseType } from 'services/CollectionService';
 
 /**
  * represents an ethereum transaction containing sales of one or more nfts
@@ -66,7 +67,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
 }
 
 export function debouncedSalesUpdater(): EventEmitter {
-  const collections: Map<string, { data: SalesData; throttledWrite: Promise<void> }> = new Map();
+  const collections: Map<string, { data: SalesData; debouncedWrite: Promise<void> }> = new Map();
 
   const emitter = new EventEmitter();
 
@@ -137,7 +138,9 @@ export function debouncedSalesUpdater(): EventEmitter {
       for (const [collectionAddress, sales] of Object.entries(salesByCollection)) {
         const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0);
         if (!collections.get(collectionAddress)) {
-          const throttledWrite = (collectionAddress: string): Promise<void> => {
+          void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
+
+          const debouncedWrite = (collectionAddress: string): Promise<void> => {
             return new Promise<void>((resolve) => {
               setTimeout(async () => {
                 try {
@@ -158,7 +161,7 @@ export function debouncedSalesUpdater(): EventEmitter {
           };
           collections.set(collectionAddress, {
             data: { transactions: [{ sales, totalPrice: totalSalePriceInCollection }] },
-            throttledWrite: throttledWrite(collectionAddress)
+            debouncedWrite: debouncedWrite(collectionAddress)
           });
         } else {
           const collectionData = collections.get(collectionAddress);
@@ -316,5 +319,17 @@ function writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
   for (const sale of sales) {
     const docRef = salesCollectionRef.doc();
     tx.create(docRef, sale);
+  }
+}
+
+async function attemptToIndex(collection: { address: string; chainId: string }) {
+  try {
+    const res = await enqueueCollection(collection, COLLECTION_SERVICE_URL);
+    if (res !== ResponseType.AlreadyQueued && res !== ResponseType.IndexingInitiated) {
+      logger.error(`Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}`);
+    }
+  } catch (err) {
+    logger.error(`Failed to enqueue collection. ${collection.chainId}:${collection.address}`);
+    logger.error(err);
   }
 }

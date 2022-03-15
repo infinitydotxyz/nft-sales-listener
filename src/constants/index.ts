@@ -12,7 +12,7 @@ export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 // todo: change this in prod
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
-export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
 
 export const JSON_RPC_MAINNET_KEYS = (() => {
   const apiKeys = getMultipleEnvVariables('JSON_RPC_MAINNET');

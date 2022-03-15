@@ -30,7 +30,8 @@ export async function writeSalesToFeed({ sales }: Transaction) {
         const events = sales.map((item, index) => {
           const nftSnapshot = nftSnapshots[index];
           const nft: Partial<Token> | undefined = nftSnapshot.data() as Partial<Token> | undefined;
-  
+          if(!nft) return;
+
           const name = nft?.metadata?.name ?? 'Unknown';
           const slug = nft?.slug ?? '';
           const image = nft?.image?.url ?? '';
@@ -64,7 +65,7 @@ export async function writeSalesToFeed({ sales }: Transaction) {
             externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
           };
           return nftSaleEvent;
-        });
+        }).filter((item) => !!item);
   
         for (const event of events) {
           const randomDoc = feedRef.doc();
@@ -76,7 +77,6 @@ export async function writeSalesToFeed({ sales }: Transaction) {
         }
       });
     } catch (err) {
-        console.error(err);
       return;
     }
   }

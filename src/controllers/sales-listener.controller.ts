@@ -323,7 +323,6 @@ const execute = (): void => {
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);
-      logger.error(err);
     }
   });
 };

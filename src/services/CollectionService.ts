@@ -1,8 +1,5 @@
 import axios, { AxiosError } from 'axios';
 
-export const DEV_COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
-export const PROD_COLLECTION_SERVICE_URL = ''; // TODO adi add this once deployed to prod
-
 export enum ResponseType {
   IndexingInitiated = 'INDEXING_INITIATED',
   AlreadyQueued = 'INDEXING_ALREADY_INITIATED',
@@ -27,18 +24,9 @@ function getResponseType(status: number): ResponseType {
 }
 
 export async function enqueueCollection(
-  collection: { chainId: string; address: string; indexInitiator?: string },
-  queue: { env: 'prod' | 'dev' } | { url: string }
+  collection: { chainId: string; address: string; indexInitiator?: string }, url: string
 ): Promise<ResponseType> {
-  let url = '';
-  if ('env' in queue) {
-    url = queue.env === 'dev' ? DEV_COLLECTION_SERVICE_URL : PROD_COLLECTION_SERVICE_URL;
-  } else {
-    url = queue.url;
-  }
-
   try {
-    url = 'http://localhost:8080/collection';
     const res = await axios.post(
       url,
       {
