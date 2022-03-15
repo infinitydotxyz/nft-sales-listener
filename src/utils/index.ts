@@ -2,8 +2,7 @@ import { BASE_TIME } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 import { firebase } from 'container';
-import { getDocIdHash, trimLowerCase } from '@infinityxyz/lib/utils';
-import { COLLECTION_STATS_COLL, NFT_STATS_COLL } from '../constants';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 
 export function isDev(): boolean {
   return !!process.env.NODE_ENV;
@@ -57,16 +56,12 @@ export const getDocumentRefByTime = (timestamp: number, baseTime: BASE_TIME | 't
   const date = new Date(timestamp);
   const firstDayOfWeek = date.getDate() - date.getDay();
 
-  const collectionStatsRef = firebase.db.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
-  let statsRef = collectionStatsRef;
+  const collectionRef = firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({collectionAddress, chainId}));
+  let statsRef = collectionRef.collection(firestoreConstants.COLLECTION_DATA_COLL).doc(firestoreConstants.COLLECTION_STATS_DOC);
 
   if(typeof tokenId === 'string') {
-    const nftDocId = getDocIdHash({
-      chainId,
-      collectionAddress: trimLowerCase(collectionAddress),
-      tokenId: tokenId
-    });
-    const nftStatsRef = firebase.db.collection(NFT_STATS_COLL).doc(nftDocId);
+    const nftDocId = tokenId;
+    const nftStatsRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(nftDocId).collection(firestoreConstants.COLLECTION_DATA_COLL).doc(firestoreConstants.NFT_STATS_DOC);
     statsRef = nftStatsRef;
   }
 

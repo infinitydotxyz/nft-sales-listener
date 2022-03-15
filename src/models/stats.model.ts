@@ -1,9 +1,6 @@
-import { firebase } from '../container';
-import { getDocumentIdByTime } from '../utils';
+import { getDocumentRefByTime } from '../utils';
 import { BASE_TIME, Stats } from '../types';
-import { COLLECTION_STATS_COLL } from '../constants';
 import { CollectionStats } from '../services/OpenSea';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
 export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
@@ -31,11 +28,9 @@ const saveInitialCollectionStats = async (
   collectionAddress: string,
   chainId = '1'
 ): Promise<void> => {
-  const firestore = firebase.db;
   const batchHandler = new FirestoreBatchHandler();
 
   const timestamp = Date.now();
-  const statsRef = firestore.collection(COLLECTION_STATS_COLL).doc(`${chainId}:${trimLowerCase(collectionAddress)}`);
   const totalInfo: Stats = {
     chainId,
     collectionAddress,
@@ -46,12 +41,13 @@ const saveInitialCollectionStats = async (
     avgPrice: cs.average_price,
     updatedAt: timestamp,
   };
-  batchHandler.add(statsRef, totalInfo, { merge: true });
+  const totalStatsRef = getDocumentRefByTime(timestamp, 'total', collectionAddress, chainId);
+  batchHandler.add(totalStatsRef, totalInfo, { merge: true });
 
   // --- Daily ---
-  const dailyRef = statsRef.collection(BASE_TIME.DAILY).doc(getDocumentIdByTime(timestamp, BASE_TIME.DAILY));
+  const dailyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.DAILY, collectionAddress, chainId);
   batchHandler.add(
-    dailyRef,
+    dailyStatsRef,
     {
       floorPrice: 0,
       ceilPrice: 0,
@@ -64,9 +60,9 @@ const saveInitialCollectionStats = async (
   );
 
   // --- Weekly ---
-  const weekRef = statsRef.collection(BASE_TIME.WEEKLY).doc(getDocumentIdByTime(timestamp, BASE_TIME.WEEKLY));
+  const weeklyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.WEEKLY, collectionAddress, chainId);
   batchHandler.add(
-    weekRef,
+    weeklyStatsRef,
     {
       floorPrice: 0,
       ceilPrice: 0,
@@ -79,9 +75,9 @@ const saveInitialCollectionStats = async (
   );
 
   // --- Monthly ---
-  const monthlyRef = statsRef.collection(BASE_TIME.MONTHLY).doc(getDocumentIdByTime(timestamp, BASE_TIME.MONTHLY));
+  const monthlyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.MONTHLY, collectionAddress, chainId);
   batchHandler.add(
-    monthlyRef,
+    monthlyStatsRef,
     {
       floorPrice: 0,
       ceilPrice: 0,
