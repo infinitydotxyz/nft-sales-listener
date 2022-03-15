@@ -1,11 +1,13 @@
-import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
-import { BASE_TIME, NftSale, Stats } from 'types';
+import { BASE_TIME, Stats } from 'types';
 import { getDocumentRefByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
+import { NftSale } from '@infinityxyz/lib/types/core';
+import { writeSalesToFeed } from 'controllers/feed.controller';
 
 /**
  * represents an ethereum transaction containing sales of one or more nfts
@@ -41,7 +43,7 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
       collectionAddress: data.sales[0].collectionAddress,
       floorPrice: data.sales[0].price,
       ceilPrice: data.sales[0].price,
-      totalVolume: data.sales[0].price * totalNumSales, // TODO total price may  
+      totalVolume: data.sales[0].price * totalNumSales,
       totalNumSales,
       avgPrice: data.sales[0].price,
       updatedAt: data.sales[0].timestamp
@@ -106,19 +108,34 @@ export function debouncedSalesUpdater(): EventEmitter {
     }
   }
 
-  emitter.on('sales', ({ sales }: Transaction) => {
+  /**
+   * called each time a tx is received to perform some "safe" db writes
+   * safe := (we don't have to worry about hitting 1 write/second limit)
+   */
+  async function performSafeDocumentWrites(tx: Transaction): Promise<void> {
+    try {
+      await writeSalesToFeed(tx);
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  emitter.on('sales', (tx: Transaction) => {
+    const { sales } = tx;
     if (Array.isArray(sales) && sales.length > 0) {
       const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
-        if(!acc[sale.collectionAddress]) {
+        if (!acc[sale.collectionAddress]) {
           acc[sale.collectionAddress] = [];
-        } 
+        }
         acc[sale.collectionAddress].push(sale);
 
         return acc;
       }, {});
 
-      for(const [collectionAddress, sales] of Object.entries(salesByCollection)) {
-        const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0); 
+      void performSafeDocumentWrites(tx);
+
+      for (const [collectionAddress, sales] of Object.entries(salesByCollection)) {
+        const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0);
         if (!collections.get(collectionAddress)) {
           const throttledWrite = (collectionAddress: string): Promise<void> => {
             return new Promise<void>((resolve) => {
@@ -146,7 +163,7 @@ export function debouncedSalesUpdater(): EventEmitter {
         } else {
           const collectionData = collections.get(collectionAddress);
           collectionData?.data.transactions.push({ sales, totalPrice: totalSalePriceInCollection });
-        } 
+        }
       }
     }
   });
@@ -169,7 +186,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
       };
     } = {};
 
-    const addToUpdates = (ref: FirebaseFirestore.DocumentReference, data: Transaction | NftSale) => {
+    const addToUpdates = <T extends Transaction | NftSale>(ref: FirebaseFirestore.DocumentReference, data: T) => {
       const path = ref.path;
       if (!updates[ref.path]) {
         updates[path] = {
@@ -178,8 +195,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
           dataToAggregate: []
         };
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      updates[ref.path]?.dataToAggregate?.push(data as any);
+      (updates[ref.path]?.dataToAggregate as T[])?.push(data);
     };
 
     /**

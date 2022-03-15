@@ -3,12 +3,12 @@ import { Block } from '@ethersproject/abstract-provider';
 import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import Providers from '../models/Providers';
-import { SALE_SOURCE, TOKEN_TYPE, PreParsedNftSale } from '../types/index';
+import { PreParsedNftSale } from '../types/index';
 import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
-import { debouncedSalesUpdater, Transaction } from 'models/debouncedSalesUpdater';
-import { TokenStandard } from '@infinityxyz/lib/types/core';
+import { debouncedSalesUpdater } from 'models/debouncedSalesUpdater';
+import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -85,7 +85,7 @@ function handleBundleSale(inputs: DecodedAtomicMatchInputs): TokenInfo[] {
     collectionAddr: collectionAddrs[index],
     tokenIdStr: tokenIdsList[index],
     quantity: 1,
-    tokenType: TOKEN_TYPE.ERC721
+    tokenType: TokenStandard.ERC721
   }));
 }
 
@@ -107,7 +107,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
   let collectionAddr;
   let tokenIdStr;
   let quantity = 1;
-  let tokenType = TOKEN_TYPE.ERC721;
+  let tokenType = TokenStandard.ERC721;
   const calldataBuy: string = inputs.calldataBuy;
 
   let offset = TRAILING_OX + METHOD_ID_LENGTH + UINT_256_LENGTH * 2;
@@ -118,7 +118,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 458) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
-      tokenType = TOKEN_TYPE.ERC1155;
+      tokenType = TokenStandard.ERC1155;
     }
   } else {
     // Token minted on Opensea
@@ -127,7 +127,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 202) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
-      tokenType = TOKEN_TYPE.ERC1155;
+      tokenType = TokenStandard.ERC1155;
     }
   }
 
@@ -168,15 +168,15 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
       collectionAddress: '',
       tokenId: '',
       quantity: 0,
-      source: SALE_SOURCE.OPENSEA,
-      tokenType: TokenStandard.ERC721
+      source: SaleSource.OpenSea,
+      tokenStandard: TokenStandard.ERC721
     };
 
     if (saleAddress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
       const token = handleSingleSale(inputs);
       res.collectionAddress = token.collectionAddr;
       res.tokenId = token.tokenIdStr;
-      res.tokenType = token.tokenType === TokenStandard.ERC721 ? TokenStandard.ERC721 : TokenStandard.ERC1155;
+      res.tokenStandard = token.tokenType === TokenStandard.ERC721 ? TokenStandard.ERC721 : TokenStandard.ERC1155;
       res.quantity = token.quantity;
       return [res];
     } else {
@@ -184,7 +184,7 @@ function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, bl
       const response: PreParsedNftSale[] = tokens.map((token: TokenInfo) => {
         res.collectionAddress = token.collectionAddr;
         res.tokenId = token.tokenIdStr;
-        res.tokenType = TokenStandard.ERC721;
+        res.tokenStandard = TokenStandard.ERC721;
         res.quantity = token.quantity;
         return res;
       });
