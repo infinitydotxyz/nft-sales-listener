@@ -37,7 +37,6 @@ export async function writeSalesToFeed({ sales }: Transaction, collections: {[ad
           const nftSnapshot = nftSnapshots[index];
           const nft: Partial<Token> | undefined = nftSnapshot.data() as Partial<Token> | undefined;
           
-
           const collection = collections[trimLowerCase(item.collectionAddress)];
           const collectionSlug = collection?.slug;
           const collectionName = collection?.metadata?.name;
