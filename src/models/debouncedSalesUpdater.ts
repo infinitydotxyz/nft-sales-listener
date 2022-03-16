@@ -6,7 +6,7 @@ import { BASE_TIME, Stats } from 'types';
 import { getDocumentRefByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
-import { NftSale } from '@infinityxyz/lib/types/core';
+import { Collection, CreationFlow, NftSale } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
 import { enqueueCollection, ResponseType } from 'services/CollectionService';
 
@@ -113,15 +113,53 @@ export function debouncedSalesUpdater(): EventEmitter {
    * called each time a tx is received to perform some "safe" db writes
    * safe := (we don't have to worry about hitting 1 write/second limit)
    */
-  async function performSafeDocumentWrites(tx: Transaction): Promise<void> {
+  async function performSafeDocumentWrites(
+    tx: Transaction,
+    collections: {
+      [address: string]: Partial<Collection>;
+    }
+  ): Promise<void> {
     try {
-      await writeSalesToFeed(tx);
+      await writeSalesToFeed(tx, collections);
     } catch (err) {
       logger.error(err);
     }
   }
 
-  emitter.on('sales', (tx: Transaction) => {
+  async function getCollectionsFromSales(sales: NftSale[]): Promise<{
+    [address: string]: Partial<Collection>;
+  }> {
+    try {
+      const collectionAddresses = new Map(
+        sales.map((sale) => [sale.collectionAddress, { address: sale.collectionAddress, chainId: sale.chainId }])
+      );
+      const collectionPromises: Promise<Partial<Collection>>[] = [];
+      for (const [, collection] of collectionAddresses) {
+        const collectionPromise = firebase.getCollectionDocRef(collection.chainId, collection.address).get() as Promise<
+          Partial<Collection>
+        >;
+        collectionPromises.push(collectionPromise);
+      }
+
+      const collectionData = (await Promise.all(collectionPromises)).reduce(
+        (acc: { [address: string]: Partial<Collection> }, collection) => {
+          if (collection.address) {
+            acc[collection.address] = collection;
+          }
+          return acc;
+        },
+        {}
+      );
+
+      return collectionData;
+    } catch (err) {
+      logger.error(`Failed to get collection data`);
+      logger.error(err);
+      return {};
+    }
+  }
+
+  emitter.on('sales', async (tx: Transaction) => {
     const { sales } = tx;
     if (Array.isArray(sales) && sales.length > 0) {
       const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
@@ -129,16 +167,19 @@ export function debouncedSalesUpdater(): EventEmitter {
           acc[sale.collectionAddress] = [];
         }
         acc[sale.collectionAddress].push(sale);
-
         return acc;
       }, {});
 
-      void performSafeDocumentWrites(tx);
+      const collectionData = await getCollectionsFromSales(sales);
+
+      void performSafeDocumentWrites(tx, collectionData);
 
       for (const [collectionAddress, sales] of Object.entries(salesByCollection)) {
         const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0);
         if (!collections.get(collectionAddress)) {
-          void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
+          if (collectionData?.[collectionAddress]?.state?.create?.step !== CreationFlow.Complete) {
+            void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
+          }
 
           const debouncedWrite = (collectionAddress: string): Promise<void> => {
             return new Promise<void>((resolve) => {

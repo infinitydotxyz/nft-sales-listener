@@ -1,11 +1,11 @@
-import { EtherscanLinkType, InfinityLinkType } from "@infinityxyz/lib/types/core";
+import { Collection, EtherscanLinkType, InfinityLinkType } from "@infinityxyz/lib/types/core";
 import { FeedEventType, NftSaleEvent } from "@infinityxyz/lib/types/core/feed";
 import { Token } from "@infinityxyz/lib/types/core/Token";
 import { firestoreConstants, getCollectionDocId, getEtherscanLink, getInfinityLink } from "@infinityxyz/lib/utils";
 import { firebase } from "container";
 import { Transaction } from "models/debouncedSalesUpdater";
 
-export async function writeSalesToFeed({ sales }: Transaction) {
+export async function writeSalesToFeed({ sales }: Transaction, collections: {[address: string]: Partial<Collection>}) {
     try {
       await firebase.db.runTransaction(async (tx) => {
         const feedRef = firebase.db.collection(firestoreConstants.FEED_COLL);
@@ -15,7 +15,7 @@ export async function writeSalesToFeed({ sales }: Transaction) {
         if (!saleTx.empty) {
           throw new Error('transaction already saved');
         }
-  
+        
         const nftSnapshotPromises = sales.map((item) => {
           const nftRef = firebase.db
             .collection(firestoreConstants.COLLECTIONS_COLL)
@@ -30,17 +30,25 @@ export async function writeSalesToFeed({ sales }: Transaction) {
         const events = sales.map((item, index) => {
           const nftSnapshot = nftSnapshots[index];
           const nft: Partial<Token> | undefined = nftSnapshot.data() as Partial<Token> | undefined;
-          if(!nft) return;
+          
 
-          const name = nft?.metadata?.name ?? 'Unknown';
-          const slug = nft?.slug ?? '';
+          const collection = collections[item.collectionAddress];
+          const collectionSlug = collection?.slug;
+          const collectionName = collection?.metadata?.name;
+
+          const nftName = nft?.metadata?.name ?? 'Unknown';
+          const nftSlug = nft?.slug ?? '';
           const image = nft?.image?.url ?? '';
+
+          if(!collectionSlug || !collectionName || !nftSlug || !nftName || !image) {
+            return;
+          }
   
           const nftSaleEvent: NftSaleEvent = {
             type: FeedEventType.NftSale,
             buyer: item.buyer,
             seller: item.seller,
-            sellerDisplayName: '',
+            sellerDisplayName: '', // TODO
             buyerDisplayName: '',
             price: item.price,
             paymentToken: item.paymentToken,
@@ -50,8 +58,10 @@ export async function writeSalesToFeed({ sales }: Transaction) {
             quantity: item.quantity,
             chainId: item.chainId,
             collectionAddress: item.collectionAddress,
-            name,
-            slug,
+            name: collectionName,
+            slug: collectionSlug,
+            nftName,
+            nftSlug,
             likes: 0,
             comments: 0,
             tokenId: item.tokenId,
