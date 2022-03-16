@@ -133,24 +133,23 @@ export function debouncedSalesUpdater(): EventEmitter {
       const collectionAddresses = new Map(
         sales.map((sale) => [sale.collectionAddress, { address: sale.collectionAddress, chainId: sale.chainId }])
       );
-      const collectionPromises: Promise<Partial<Collection>>[] = [];
+      const collectionPromises: Promise<FirebaseFirestore.DocumentSnapshot>[] = [];
       for (const [, collection] of collectionAddresses) {
-        const collectionPromise = firebase.getCollectionDocRef(collection.chainId, collection.address).get() as Promise<
-          Partial<Collection>
-        >;
+        const collectionPromise = firebase.getCollectionDocRef(collection.chainId, collection.address).get();
         collectionPromises.push(collectionPromise);
       }
 
       const collectionData = (await Promise.all(collectionPromises)).reduce(
-        (acc: { [address: string]: Partial<Collection> }, collection) => {
-          if (collection.address) {
-            acc[collection.address] = collection;
+        (acc: { [address: string]: Partial<Collection> }, snapShot) => {
+          const collection = snapShot.data();
+          if (collection?.address && typeof collection.address === 'string') {
+            acc[collection.address] = collection as Partial<Collection>;
           }
           return acc;
         },
         {}
       );
-
+      
       return collectionData;
     } catch (err) {
       logger.error(`Failed to get collection data`);

@@ -57,11 +57,11 @@ export const getDocumentRefByTime = (timestamp: number, baseTime: BASE_TIME | 't
   const firstDayOfWeek = date.getDate() - date.getDay();
 
   const collectionRef = firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({collectionAddress, chainId}));
-  let statsRef = collectionRef.collection(firestoreConstants.DATA_SUB_COLL).doc(firestoreConstants.COLLECTION_STATS_DOC);
+  let statsRef = collectionRef.collection(firestoreConstants.DATA_SUB_COL).doc(firestoreConstants.COLLECTION_STATS_DOC);
 
   if(typeof tokenId === 'string') {
     const nftDocId = tokenId;
-    const nftStatsRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(nftDocId).collection(firestoreConstants.COLLECTION_DATA_COLL).doc(firestoreConstants.NFT_STATS_DOC);
+    const nftStatsRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(nftDocId).collection(firestoreConstants.DATA_SUB_COL).doc(firestoreConstants.NFT_STATS_DOC);
     statsRef = nftStatsRef;
   }
 
