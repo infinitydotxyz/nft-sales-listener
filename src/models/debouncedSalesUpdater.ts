@@ -1,5 +1,5 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import { COLLECTION_SERVICE_URL, SALES_COLL } from '../constants';
+import { COLLECTION_INDEXING_SERVICE_URL, SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
 import { BASE_TIME, Stats } from 'types';
@@ -8,7 +8,7 @@ import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
 import { Collection, CreationFlow, NftSale } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
-import { enqueueCollection, ResponseType } from 'services/CollectionService';
+import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
 
 /**
  * represents an ethereum transaction containing sales of one or more nfts
@@ -365,7 +365,7 @@ function writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
 
 async function attemptToIndex(collection: { address: string; chainId: string }) {
   try {
-    const res = await enqueueCollection(collection, COLLECTION_SERVICE_URL);
+    const res = await enqueueCollection(collection, COLLECTION_INDEXING_SERVICE_URL);
     if (res !== ResponseType.AlreadyQueued && res !== ResponseType.IndexingInitiated) {
       logger.error(`Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}`);
     }

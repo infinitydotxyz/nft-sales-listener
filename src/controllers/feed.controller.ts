@@ -1,8 +1,8 @@
 import { Collection, EtherscanLinkType, InfinityLinkType } from "@infinityxyz/lib/types/core";
 import { FeedEventType, NftSaleEvent } from "@infinityxyz/lib/types/core/feed";
 import { Token } from "@infinityxyz/lib/types/core/Token";
-import { firestoreConstants, getCollectionDocId, getEtherscanLink, getInfinityLink } from "@infinityxyz/lib/utils";
-import { firebase } from "container";
+import { firestoreConstants, getCollectionDocId, getEtherscanLink, getInfinityLink, getUserDisplayName } from "@infinityxyz/lib/utils";
+import { firebase, providers } from "container";
 import { Transaction } from "models/debouncedSalesUpdater";
 
 export async function writeSalesToFeed({ sales }: Transaction, collections: {[address: string]: Partial<Collection>}) {
@@ -24,8 +24,14 @@ export async function writeSalesToFeed({ sales }: Transaction, collections: {[ad
             .doc(item.tokenId);
           return nftRef.get(); // this doesn't impact the tx 
         });
-  
+
         const nftSnapshots = await Promise.all(nftSnapshotPromises);
+
+        const chainId = sales[0].chainId;
+        const provider = providers.getProviderByChainId(chainId);
+        const buyer = sales[0].buyer;
+        const seller = sales[0].seller;
+        const [buyerDisplayName, sellerDisplayName] = await Promise.all([buyer, seller].map((item) => getUserDisplayName(item, chainId, provider)));
   
         const events = sales.map((item, index) => {
           const nftSnapshot = nftSnapshots[index];
@@ -48,8 +54,8 @@ export async function writeSalesToFeed({ sales }: Transaction, collections: {[ad
             type: FeedEventType.NftSale,
             buyer: item.buyer,
             seller: item.seller,
-            sellerDisplayName: '', // TODO
-            buyerDisplayName: '',
+            sellerDisplayName: sellerDisplayName, 
+            buyerDisplayName: buyerDisplayName,
             price: item.price,
             paymentToken: item.paymentToken,
             source: item.source,
@@ -78,12 +84,8 @@ export async function writeSalesToFeed({ sales }: Transaction, collections: {[ad
         }).filter((item) => !!item);
   
         for (const event of events) {
-          const randomDoc = feedRef.doc();
-          const id = randomDoc.id;
-          const chainId = sales[0].chainId;
-          const idPrependedWithChainId = `${chainId}:${id}`;
-          const feedDoc = feedRef.doc(idPrependedWithChainId);
-          tx.create(feedDoc, event);
+          const nftSaleDoc = feedRef.doc();
+          tx.create(nftSaleDoc, event);
         }
       });
     } catch (err) {
