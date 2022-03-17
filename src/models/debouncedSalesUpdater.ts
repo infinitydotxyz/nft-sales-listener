@@ -1,16 +1,19 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import { SALES_COLL } from '../constants';
+import { COLLECTION_INDEXING_SERVICE_URL, SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
-import { BASE_TIME, NftSale, Stats } from 'types';
+import { BASE_TIME, Stats } from 'types';
 import { getDocumentRefByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
+import { Collection, CreationFlow, NftSale } from '@infinityxyz/lib/types/core';
+import { writeSalesToFeed } from 'controllers/feed.controller';
+import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
 
 /**
  * represents an ethereum transaction containing sales of one or more nfts
  */
-type Transaction = { sales: NftSale[]; totalPrice: number };
+export type Transaction = { sales: NftSale[]; totalPrice: number };
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
@@ -39,11 +42,11 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     const incomingStats: Stats = {
       chainId: data.sales[0].chainId,
       collectionAddress: data.sales[0].collectionAddress,
-      floorPrice: data.sales[0].price as number,
-      ceilPrice: data.sales[0].price as number,
-      totalVolume: data.totalPrice,
+      floorPrice: data.sales[0].price,
+      ceilPrice: data.sales[0].price,
+      totalVolume: data.sales[0].price * totalNumSales,
       totalNumSales,
-      avgPrice: data.sales[0].price as number,
+      avgPrice: data.sales[0].price,
       updatedAt: data.sales[0].timestamp
     };
     return incomingStats;
@@ -53,18 +56,18 @@ function getIncomingStats(data: Transaction | NftSale): Stats {
     chainId: data.chainId,
     collectionAddress: data.collectionAddress,
     tokenId: data.tokenId,
-    floorPrice: data.price as number,
-    ceilPrice: data.price as number,
-    totalVolume: data.price as number,
+    floorPrice: data.price,
+    ceilPrice: data.price,
+    totalVolume: data.price,
     totalNumSales: 1,
-    avgPrice: data.price as number,
+    avgPrice: data.price,
     updatedAt: data.timestamp
   };
   return incomingStats;
 }
 
 export function debouncedSalesUpdater(): EventEmitter {
-  const collections: Map<string, { data: SalesData; throttledWrite: Promise<void> }> = new Map();
+  const collections: Map<string, { data: SalesData; debouncedWrite: Promise<void> }> = new Map();
 
   const emitter = new EventEmitter();
 
@@ -106,39 +109,107 @@ export function debouncedSalesUpdater(): EventEmitter {
     }
   }
 
-  emitter.on('sales', ({ sales, totalPrice }: Transaction) => {
+  /**
+   * called each time a tx is received to perform some "safe" db writes
+   * safe := (we don't have to worry about hitting 1 write/second limit)
+   */
+  async function performSafeDocumentWrites(
+    tx: Transaction,
+    collections: {
+      [address: string]: Partial<Collection>;
+    }
+  ): Promise<void> {
+    try {
+      await writeSalesToFeed(tx, collections);
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  async function getCollectionsFromSales(sales: NftSale[]): Promise<{
+    [address: string]: Partial<Collection>;
+  }> {
+    try {
+      const collectionAddresses = new Map(
+        sales.map((sale) => [sale.collectionAddress, { address: sale.collectionAddress, chainId: sale.chainId }])
+      );
+      const collectionPromises: Promise<FirebaseFirestore.DocumentSnapshot>[] = [];
+      for (const [, collection] of collectionAddresses) {
+        const collectionPromise = firebase.getCollectionDocRef(collection.chainId, collection.address).get();
+        collectionPromises.push(collectionPromise);
+      }
+
+      const collectionData = (await Promise.all(collectionPromises)).reduce(
+        (acc: { [address: string]: Partial<Collection> }, snapShot) => {
+          const collection = snapShot.data();
+          if (collection?.address && typeof collection.address === 'string') {
+            acc[collection.address] = collection as Partial<Collection>;
+          }
+          return acc;
+        },
+        {}
+      );
+      
+      return collectionData;
+    } catch (err) {
+      logger.error(`Failed to get collection data`);
+      logger.error(err);
+      return {};
+    }
+  }
+
+  emitter.on('sales', async (tx: Transaction) => {
+    const { sales } = tx;
     if (Array.isArray(sales) && sales.length > 0) {
-      const collectionAddress = sales[0].collectionAddress;
-      if (!collections.get(collectionAddress)) {
-        const throttledWrite = (collectionAddress: string): Promise<void> => {
-          return new Promise<void>((resolve) => {
-            setTimeout(async () => {
-              try {
-                logger.log(`Saving collection: ${collectionAddress}`);
-                const collection = collections.get(collectionAddress);
-                collections.delete(collectionAddress);
-                if (collection?.data) {
-                  await updateCollectionSales(collection.data.transactions);
+      const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
+        if (!acc[sale.collectionAddress]) {
+          acc[sale.collectionAddress] = [];
+        }
+        acc[sale.collectionAddress].push(sale);
+        return acc;
+      }, {});
+
+      const collectionData = await getCollectionsFromSales(sales);
+
+      void performSafeDocumentWrites(tx, collectionData);
+
+      for (const [collectionAddress, sales] of Object.entries(salesByCollection)) {
+        const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0);
+        if (!collections.get(collectionAddress)) {
+          if (collectionData?.[collectionAddress]?.state?.create?.step !== CreationFlow.Complete) {
+            void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
+          }
+
+          const debouncedWrite = (collectionAddress: string): Promise<void> => {
+            return new Promise<void>((resolve) => {
+              setTimeout(async () => {
+                try {
+                  const collection = collections.get(collectionAddress);
+                  logger.log(`Saving collection: ${collectionAddress}`);
+
+                  collections.delete(collectionAddress);
+                  if (collection?.data) {
+                    await updateCollectionSales(collection.data.transactions);
+                  }
+                  resolve();
+                } catch (err) {
+                  logger.error(err);
+                  resolve();
                 }
-                resolve();
-              } catch (err) {
-                logger.error(err);
-                resolve();
-              }
-            }, DEBOUNCE_INTERVAL);
+              }, DEBOUNCE_INTERVAL);
+            });
+          };
+          collections.set(collectionAddress, {
+            data: { transactions: [{ sales, totalPrice: totalSalePriceInCollection }] },
+            debouncedWrite: debouncedWrite(collectionAddress)
           });
-        };
-        collections.set(collectionAddress, {
-          data: { transactions: [{ sales, totalPrice }] },
-          throttledWrite: throttledWrite(collectionAddress)
-        });
-      } else {
-        const collectionData = collections.get(collectionAddress);
-        collectionData?.data.transactions.push({ sales, totalPrice });
+        } else {
+          const collectionData = collections.get(collectionAddress);
+          collectionData?.data.transactions.push({ sales, totalPrice: totalSalePriceInCollection });
+        }
       }
     }
   });
-
   return emitter;
 }
 
@@ -146,8 +217,9 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
   const chainId = transactions[0].sales[0].chainId;
   const collectionAddress = trimLowerCase(transactions[0].sales[0].collectionAddress);
 
+  let validTransactions: Transaction[] = [];
   await firebase.db.runTransaction(async (tx) => {
-    const validTransactions = await getUnsavedTransactions(transactions);
+    validTransactions = await getUnsavedTransactions(transactions);
 
     const updates: {
       [refPath: string]: {
@@ -157,7 +229,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
       };
     } = {};
 
-    const addToUpdates = (ref: FirebaseFirestore.DocumentReference, data: Transaction | NftSale) => {
+    const addToUpdates = <T extends Transaction | NftSale>(ref: FirebaseFirestore.DocumentReference, data: T) => {
       const path = ref.path;
       if (!updates[ref.path]) {
         updates[path] = {
@@ -166,8 +238,7 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
           dataToAggregate: []
         };
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      updates[ref.path]?.dataToAggregate?.push(data as any);
+      (updates[ref.path]?.dataToAggregate as T[])?.push(data);
     };
 
     /**
@@ -288,5 +359,17 @@ function writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
   for (const sale of sales) {
     const docRef = salesCollectionRef.doc();
     tx.create(docRef, sale);
+  }
+}
+
+async function attemptToIndex(collection: { address: string; chainId: string }) {
+  try {
+    const res = await enqueueCollection(collection, COLLECTION_INDEXING_SERVICE_URL);
+    if (res !== ResponseType.AlreadyQueued && res !== ResponseType.IndexingInitiated) {
+      logger.error(`Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}`);
+    }
+  } catch (err) {
+    logger.error(`Failed to enqueue collection. ${collection.chainId}:${collection.address}`);
+    logger.error(err);
   }
 }

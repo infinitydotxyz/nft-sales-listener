@@ -1,7 +1,6 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import PQueue from 'p-queue';
-import { CollectionStats } from '../services/OpenSea';
 import StatsModel from '../models/stats.model';
 import { logger, opensea } from '../container';
 

@@ -1,10 +1,11 @@
 import { logger } from '../container';
 import { convertWeiToEther } from '../utils';
-import { NftSale } from '../types';
+import { PreParsedNftSale } from '../types';
 import { NULL_ADDRESS } from '../constants';
 import { trimLowerCase, ETHEREUM_WETH_ADDRESS } from '@infinityxyz/lib/utils';
+import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
 
-export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[]; totalPrice: number } => {
+export const parseSaleOrders = (sales: PreParsedNftSale[]): { sales: NftSale[]; totalPrice: number } => {
   /**
    * Skip the transactions without eth or weth as the payment. ex: usd, matic ...
    * */
@@ -16,11 +17,11 @@ export const parseSaleOrders = (sales: NftSale[]): { sales: NftSale[]; totalPric
   }
 
   try {
-    const totalPrice = convertWeiToEther(sales[0].price as BigInt);
-    const orders: NftSale[] = sales.map((tx: NftSale) => {
+    const totalPrice = convertWeiToEther(sales[0].price );
+    const orders: NftSale[] = sales.map((tx: PreParsedNftSale) => {
       const order: NftSale = {
         chainId: tx.chainId,
-        tokenType: tx.tokenType,
+        tokenStandard: tx.tokenStandard,
         txHash: trimLowerCase(tx.txHash),
         tokenId: tx.tokenId,
         collectionAddress: trimLowerCase(tx.collectionAddress),
