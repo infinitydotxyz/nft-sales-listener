@@ -1,4 +1,4 @@
-import { SaleSource, TokenStandard } from "@infinityxyz/lib/types/core";
+import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 
 export enum BASE_TIME {
   HOURLY = 'hourly',
@@ -23,7 +23,6 @@ export interface PreParsedNftSale {
   source: SaleSource;
   tokenStandard: TokenStandard;
 }
-
 
 export interface Stats {
   chainId: string;

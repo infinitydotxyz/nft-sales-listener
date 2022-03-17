@@ -1,4 +1,4 @@
-service: nft-transfer-monitor
+service: nft-sales-listener
 runtime: nodejs
 env: flex
 automatic_scaling:

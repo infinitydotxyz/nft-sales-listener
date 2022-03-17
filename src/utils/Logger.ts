@@ -42,7 +42,7 @@ export default class Logger {
     });
 
     process.on('exit', (code) => {
-        this.log(`Process exiting... Code: ${code}`);
+      this.log(`Process exiting... Code: ${code}`);
     });
   }
 }

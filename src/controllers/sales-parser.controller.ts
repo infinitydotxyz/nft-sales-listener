@@ -17,7 +17,7 @@ export const parseSaleOrders = (sales: PreParsedNftSale[]): { sales: NftSale[]; 
   }
 
   try {
-    const totalPrice = convertWeiToEther(sales[0].price );
+    const totalPrice = convertWeiToEther(sales[0].price);
     const orders: NftSale[] = sales.map((tx: PreParsedNftSale) => {
       const order: NftSale = {
         chainId: tx.chainId,

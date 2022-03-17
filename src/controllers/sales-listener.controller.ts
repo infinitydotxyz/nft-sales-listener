@@ -145,7 +145,11 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(inputs: DecodedAtomicMatchInputs, txHash: string, block: Block): PreParsedNftSale[] | undefined {
+function handleAtomicMatch_(
+  inputs: DecodedAtomicMatchInputs,
+  txHash: string,
+  block: Block
+): PreParsedNftSale[] | undefined {
   try {
     const addrs: string[] = inputs.addrs;
     const saleAddress: string = addrs[11];

@@ -39,10 +39,9 @@ export default class OpenSea {
       hooks: {
         beforeRequest: [
           (options) => {
-            if(!options?.headers?.['x-api-key']) {
-
-              if(!options.headers) {
-                options.headers = {}
+            if (!options?.headers?.['x-api-key']) {
+              if (!options.headers) {
+                options.headers = {};
               }
 
               const randomApiKey = randomItem(OPENSEA_API_KEYS);

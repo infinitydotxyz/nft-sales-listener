@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import axios, { AxiosError } from 'axios';
 
 export enum ResponseType {
@@ -24,7 +25,8 @@ function getResponseType(status: number): ResponseType {
 }
 
 export async function enqueueCollection(
-  collection: { chainId: string; address: string; indexInitiator?: string }, url: string
+  collection: { chainId: string; address: string; indexInitiator?: string },
+  url: string
 ): Promise<ResponseType> {
   try {
     const res = await axios.post(

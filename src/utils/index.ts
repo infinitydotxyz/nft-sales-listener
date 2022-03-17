@@ -51,17 +51,30 @@ export const convertWeiToEther = (price: BigInt): number => {
   return parseFloat(ethers.utils.formatEther(price.toString()));
 };
 
-
-export const getDocumentRefByTime = (timestamp: number, baseTime: BASE_TIME | 'total', collectionAddress: string, chainId: string, tokenId?: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> => {
+export const getDocumentRefByTime = (
+  timestamp: number,
+  baseTime: BASE_TIME | 'total',
+  collectionAddress: string,
+  chainId: string,
+  tokenId?: string
+): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> => {
   const date = new Date(timestamp);
   const firstDayOfWeek = date.getDate() - date.getDay();
 
-  const collectionRef = firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({collectionAddress, chainId}));
-  let statsRef = collectionRef.collection(firestoreConstants.DATA_SUB_COLL).doc(firestoreConstants.COLLECTION_STATS_DOC);
+  const collectionRef = firebase.db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .doc(getCollectionDocId({ collectionAddress, chainId }));
+  let statsRef = collectionRef
+    .collection(firestoreConstants.DATA_SUB_COLL)
+    .doc(firestoreConstants.COLLECTION_STATS_DOC);
 
-  if(typeof tokenId === 'string') {
+  if (typeof tokenId === 'string') {
     const nftDocId = tokenId;
-    const nftStatsRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(nftDocId).collection(firestoreConstants.DATA_SUB_COLL).doc(firestoreConstants.NFT_STATS_DOC);
+    const nftStatsRef = collectionRef
+      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+      .doc(nftDocId)
+      .collection(firestoreConstants.DATA_SUB_COLL)
+      .doc(firestoreConstants.NFT_STATS_DOC);
     statsRef = nftStatsRef;
   }
 
@@ -83,6 +96,6 @@ export const getDocumentRefByTime = (timestamp: number, baseTime: BASE_TIME | 't
       docId = moment(date).format('YYYY');
       return statsRef.collection(baseTime).doc(docId);
     case 'total':
-      return statsRef
+      return statsRef;
   }
-}
+};

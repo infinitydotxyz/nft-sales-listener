@@ -1,7 +1,6 @@
 {
   "name": "nft-sales-listener",
   "version": "1.0.0",
-  "description": "",
   "engines": {
     "node": "16.x.x",
     "npm": "8.x.x"
@@ -15,13 +14,11 @@
     "lint:fix": "eslint --fix .",
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",
-    "start": "cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
+    "start": "npx cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
     "dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/index.ts",
+    "deploy:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
     "update:lib": "npm update @infinityxyz/lib"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@types/bl": "^5.0.2",
     "@types/mime-types": "^2.1.1",
@@ -45,7 +42,6 @@
     "chalk": "^4.1.2",
     "dotenv": "^16.0.0",
     "ethers": "^5.5.4",
-    "file-type": "^16.5.3",
     "firebase-admin": "^10.0.2",
     "got": "^11.8.3",
     "mime-types": "^2.1.30",

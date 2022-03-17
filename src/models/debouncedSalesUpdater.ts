@@ -149,7 +149,7 @@ export function debouncedSalesUpdater(): EventEmitter {
         },
         {}
       );
-      
+
       return collectionData;
     } catch (err) {
       logger.error(`Failed to get collection data`);

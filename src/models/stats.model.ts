@@ -4,7 +4,7 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 
 export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
-  if(!prevStats) {
+  if (!prevStats) {
     return incomingStats;
   }
 
@@ -19,7 +19,7 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
     updatedAt: incomingStats.updatedAt,
     chainId: incomingStats.chainId,
     collectionAddress: incomingStats.collectionAddress,
-    tokenId: incomingStats.tokenId,
+    tokenId: incomingStats.tokenId
   };
 };
 
@@ -39,7 +39,7 @@ const saveInitialCollectionStats = async (
     totalVolume: cs.total_volume,
     totalNumSales: cs.total_sales,
     avgPrice: cs.average_price,
-    updatedAt: timestamp,
+    updatedAt: timestamp
   };
   const totalStatsRef = getDocumentRefByTime(timestamp, 'total', collectionAddress, chainId);
   batchHandler.add(totalStatsRef, totalInfo, { merge: true });
