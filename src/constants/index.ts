@@ -9,14 +9,10 @@ export const NFTS_COLL = 'nfts';
 
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
-/**
- *  TODO change these in prod
- * -----------------------------
- */
-export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
-export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
+export const FB_STORAGE_BUCKET = 'infinity-static';
+export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
 export const COLLECTION_INDEXING_SERVICE_URL =
-  'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
+  'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com/collection';
 /**
  * -----------------------------
  */
