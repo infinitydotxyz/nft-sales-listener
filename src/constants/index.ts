@@ -11,6 +11,8 @@ export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
 export const FB_STORAGE_BUCKET = 'infinity-static';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
+// export const COLLECTION_INDEXING_SERVICE_URL =
+//   'http://localhost:8080/collection';
 export const COLLECTION_INDEXING_SERVICE_URL =
   'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com/collection';
 /**

@@ -366,10 +366,14 @@ async function attemptToIndex(collection: { address: string; chainId: string }) 
   try {
     const res = await enqueueCollection(collection, COLLECTION_INDEXING_SERVICE_URL);
     if (res !== ResponseType.AlreadyQueued && res !== ResponseType.IndexingInitiated) {
-      logger.error(`Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}`);
+      logger.error(
+        `Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}. Indexing Url: ${COLLECTION_INDEXING_SERVICE_URL}`
+      );
     }
   } catch (err) {
-    logger.error(`Failed to enqueue collection. ${collection.chainId}:${collection.address}`);
+    logger.error(
+      `Failed to enqueue collection. ${collection.chainId}:${collection.address}. Indexing Url: ${COLLECTION_INDEXING_SERVICE_URL}`
+    );
     logger.error(err);
   }
 }
