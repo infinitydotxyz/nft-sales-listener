@@ -8,7 +8,7 @@ import { getTimestampFromStatsDocId } from '@infinityxyz/lib/utils';
 const round = (value: number, decimals: number) => {
   const decimalsFactor = Math.pow(10, decimals);
   return Math.floor(value * decimalsFactor) / decimalsFactor;
-}
+};
 
 export const getNewStats = (
   prevStats: PreAggregationStats | undefined,
@@ -23,11 +23,11 @@ export const getNewStats = (
     ? incomingStats.numSales
     : prevStats.numSales + incomingStats.numSales;
   const ceilPrice = Number.isNaN(prevStats.ceilPrice)
-  ? incomingStats.ceilPrice
-  : Math.max(prevStats.ceilPrice, incomingStats.ceilPrice)
+    ? incomingStats.ceilPrice
+    : Math.max(prevStats.ceilPrice, incomingStats.ceilPrice);
   const floorPrice = Number.isNaN(prevStats.floorPrice)
-  ? incomingStats.floorPrice
-  : Math.min(prevStats.floorPrice, incomingStats.floorPrice);
+    ? incomingStats.floorPrice
+    : Math.min(prevStats.floorPrice, incomingStats.floorPrice);
 
   return {
     floorPrice: round(floorPrice, 4),
@@ -54,6 +54,81 @@ const calcPercentChange = (prev = NaN, current: number) => {
   return round(percent, 4);
 };
 
+export function getPrevStats(
+  prevMostRecentStats: Stats,
+  prevMostRecentStatsDocId: string,
+  onePeriodAgoDocId: string,
+  twoPeriodsAgoDocId: string,
+  period: StatsPeriod
+): Stats {
+  let prevStats: Stats;
+  /**
+   * always carry over floor price, ceil price, avg price
+   * 
+   * num sales and volume become 0 if there were no sales/volume during the interval
+   */
+  if (prevMostRecentStatsDocId === onePeriodAgoDocId) {
+    prevStats = prevMostRecentStats;
+  } else if (prevMostRecentStatsDocId === twoPeriodsAgoDocId) {
+
+    prevStats = {
+      chainId: prevMostRecentStats.chainId,
+      collectionAddress: prevMostRecentStats.collectionAddress,
+
+      floorPrice: prevMostRecentStats.floorPrice,
+      prevFloorPrice: prevMostRecentStats.floorPrice,
+      floorPricePercentChange: 0,
+
+      ceilPrice: prevMostRecentStats.ceilPrice,
+      prevCeilPrice: prevMostRecentStats.ceilPrice,
+      ceilPricePercentChange: 0,
+
+      volume: 0,
+      prevVolume: prevMostRecentStats.volume,
+      volumePercentChange: calcPercentChange(prevMostRecentStats.volume, 0),
+
+      numSales: 0,
+      prevNumSales: prevMostRecentStats.numSales,
+      numSalesPercentChange: calcPercentChange(prevMostRecentStats.numSales, 0),
+
+      avgPrice: prevMostRecentStats.avgPrice,
+      prevAvgPrice: prevMostRecentStats.avgPrice,
+      avgPricePercentChange: 0,
+
+      updatedAt: Date.now(),
+      timestamp: getTimestampFromStatsDocId(onePeriodAgoDocId, period)
+    };
+  } else {
+    prevStats = {
+      chainId: prevMostRecentStats.chainId,
+      collectionAddress: prevMostRecentStats.collectionAddress,
+
+      floorPrice: prevMostRecentStats.floorPrice,
+      prevFloorPrice: prevMostRecentStats.floorPrice,
+      floorPricePercentChange: 0,
+
+      ceilPrice: prevMostRecentStats.ceilPrice,
+      prevCeilPrice: prevMostRecentStats.ceilPrice,
+      ceilPricePercentChange: 0,
+
+      volume: 0,
+      prevVolume: 0,
+      volumePercentChange: 0,
+
+      numSales: 0,
+      prevNumSales: 0,
+      numSalesPercentChange: 0,
+
+      avgPrice: prevMostRecentStats.avgPrice,
+      prevAvgPrice: prevMostRecentStats.avgPrice,
+      avgPricePercentChange: 0,
+
+      updatedAt: Date.now(),
+      timestamp: getTimestampFromStatsDocId(twoPeriodsAgoDocId, period)
+    }
+  }
+  return prevStats;
+}
 
 export function aggregateAllTimeStats(
   currentIntervalStats: PreAggregationStats,
@@ -173,7 +248,7 @@ const saveInitialCollectionStats = async (
     numSalesPercentChange: NaN,
 
     avgPrice: round(openseaStats.seven_day_average_price, 4),
-    prevAvgPrice: NaN, 
+    prevAvgPrice: NaN,
     avgPricePercentChange: NaN,
 
     timestamp: getTimestampFromStatsDocId(weeklyStatsRef.id, StatsPeriod.Weekly)

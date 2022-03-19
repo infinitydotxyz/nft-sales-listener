@@ -1,7 +1,7 @@
-import { firestoreConstants, getTimestampFromStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getStatsDocId, getTimestampFromStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
-import { aggregateAllTimeStats, aggregateStats, getNewStats } from './stats.model';
+import { aggregateAllTimeStats, aggregateStats, getNewStats, getPrevStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
 import { AllTimeStats, Collection, NftSale, OrderDirection, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
@@ -169,26 +169,43 @@ export default class DebouncedSalesUpdater {
         [refPath: string]: {
           ref: FirebaseFirestore.DocumentReference;
           currentSnapshot: Promise<FirebaseFirestore.DocumentSnapshot>;
-          prevSnapshot: Promise<FirebaseFirestore.QuerySnapshot>;
+          prevMostRecentSnapshot: Promise<FirebaseFirestore.QuerySnapshot>;
+          onePeriodAgoDocId: string;
+          twoPeriodsAgoDocId: string;
           dataToAggregate: TransactionType[] | NftSale[];
           period: StatsPeriod;
         };
       } = {};
 
+      const getPrevDocId = (currentDocId: string, period: StatsPeriod) => {
+        const ONE_MIN = 60 * 1000;
+        const currentDocIdTimestamp = getTimestampFromStatsDocId(currentDocId, period);
+        const onePeriodAgoTimestamp = currentDocIdTimestamp - ONE_MIN; 
+        const onePeriodAgoDocId = getStatsDocId(onePeriodAgoTimestamp, period);
+        return onePeriodAgoDocId;
+      };
+
       const addToUpdates = <T extends TransactionType | NftSale>(
         ref: FirebaseFirestore.DocumentReference,
-        prevQuery: FirebaseFirestore.Query,
+        prevMostRecentQuery: FirebaseFirestore.Query,
         data: T,
         period: StatsPeriod
       ) => {
+        const currentDocId = ref.id;
+        const onePeriodAgoDocId = getPrevDocId(currentDocId, period);
+        const twoPeriodsAgoDocId = getPrevDocId(onePeriodAgoDocId, period);
+
         updates[ref.path] = {
           ref,
           currentSnapshot: tx.get(ref) as unknown as Promise<FirebaseFirestore.DocumentSnapshot>,
-          prevSnapshot: prevQuery.get(),
+          prevMostRecentSnapshot: prevMostRecentQuery.get(),
+          onePeriodAgoDocId,
+          twoPeriodsAgoDocId,
           dataToAggregate: [...((updates[ref.path]?.dataToAggregate as T[]) ?? []), data] as any,
           period
         };
       };
+
 
       /**
        * add transactions to each interval
@@ -202,11 +219,12 @@ export default class DebouncedSalesUpdater {
            */
           const collectionDocRef = getDocRefByTime(time, period, collectionAddress, chainId);
           const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
-          const prevDocQuery = collectionDocRef.parent
+          
+          const prevMostRecentStatsQuery = collectionDocRef.parent
             .where('timestamp', '<', docIdTimestamp)
             .orderBy('timestamp', OrderDirection.Descending)
             .limit(1);
-          addToUpdates(collectionDocRef, prevDocQuery, transaction, period);
+          addToUpdates(collectionDocRef, prevMostRecentStatsQuery, transaction, period);
 
           /**
            * nft level
@@ -214,11 +232,12 @@ export default class DebouncedSalesUpdater {
           for (const sale of transaction.sales) {
             const tokenDocRef = getDocRefByTime(time, period, collectionAddress, chainId, sale.tokenId);
             const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
-            const prevDocQuery = tokenDocRef.parent
+
+            const prevMostRecentStatsQuery = tokenDocRef.parent
               .where('timestamp', '<', docIdTimestamp)
               .orderBy('timestamp', OrderDirection.Descending)
               .limit(1);
-            addToUpdates(tokenDocRef, prevDocQuery, transaction, period);
+            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, transaction, period);
           }
         }
       }
@@ -226,7 +245,7 @@ export default class DebouncedSalesUpdater {
       /**
        * wait for all stats promises to resolve
        */
-      await Promise.all(Object.values(updates).flatMap((item) => [item.currentSnapshot, item.prevSnapshot]));
+      await Promise.all(Object.values(updates).flatMap((item) => [item.currentSnapshot, item.prevMostRecentSnapshot]));
 
       /**
        * save sales for all valid transactions
@@ -241,7 +260,10 @@ export default class DebouncedSalesUpdater {
       let addedToQueue = false;
       for (const docToUpdate of Object.values(updates)) {
         const existingStats = (await docToUpdate.currentSnapshot).data() as Stats | undefined; // promise has already resolved
-        const prevStats = (await docToUpdate.prevSnapshot)?.docs?.[0]?.data?.() as Stats | undefined;
+        const prevMostRecentDoc =  (await docToUpdate.prevMostRecentSnapshot)?.docs?.[0];
+        const prevMostRecentStats = prevMostRecentDoc?.data?.() as Stats | undefined;
+        const prevStats: Stats | undefined = prevMostRecentStats ? getPrevStats(prevMostRecentStats, prevMostRecentDoc.id, docToUpdate.onePeriodAgoDocId, docToUpdate.twoPeriodsAgoDocId, docToUpdate.period) : undefined; 
+
         const sample = docToUpdate.dataToAggregate[0];
 
         /**
@@ -264,15 +286,10 @@ export default class DebouncedSalesUpdater {
           );
           if (mergedStats) {
             let aggregatedStats: Stats | AllTimeStats;
-            if(docToUpdate.period === StatsPeriod.All) {
-              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period)
+            if (docToUpdate.period === StatsPeriod.All) {
+              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period);
             } else {
-              aggregatedStats = aggregateStats(
-                prevStats,
-                mergedStats,
-                docToUpdate.ref.id,
-                docToUpdate.period
-              );
+              aggregatedStats = aggregateStats(prevStats, mergedStats, docToUpdate.ref.id, docToUpdate.period);
             }
 
             /**
@@ -283,9 +300,9 @@ export default class DebouncedSalesUpdater {
             tx.set(docToUpdate.ref, aggregatedStats, { merge: true });
           }
         } else {
-        /**
-         * NftSale update
-         */
+          /**
+           * NftSale update
+           */
           const statsToMerge = (docToUpdate.dataToAggregate as NftSale[]).map((sale) => {
             return getIncomingStats(sale);
           });
@@ -296,15 +313,10 @@ export default class DebouncedSalesUpdater {
           );
           if (mergedStats) {
             let aggregatedStats: Stats | AllTimeStats;
-            if(docToUpdate.period === StatsPeriod.All) {
-              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period)
+            if (docToUpdate.period === StatsPeriod.All) {
+              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period);
             } else {
-              aggregatedStats = aggregateStats(
-                prevStats,
-                mergedStats,
-                docToUpdate.ref.id,
-                docToUpdate.period
-              );
+              aggregatedStats = aggregateStats(prevStats, mergedStats, docToUpdate.ref.id, docToUpdate.period);
             }
             /**
              * min of 5 (all token ids are the same and in the same time interval)
@@ -356,7 +368,6 @@ export default class DebouncedSalesUpdater {
       .map((item) => item.transaction);
     return unsavedTransactions;
   }
-
 
   private async transactionExists(txHash: string): Promise<boolean> {
     const query = firebase.db
