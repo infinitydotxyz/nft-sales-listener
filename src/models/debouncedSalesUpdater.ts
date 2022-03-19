@@ -2,18 +2,15 @@ import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL, SALES_COLL } from '../constants';
 import { firebase, logger } from 'container';
 import { EventEmitter } from 'stream';
-import { BASE_TIME, Stats } from 'types';
-import { getDocumentRefByTime } from 'utils';
 import { getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
-import { Collection, CreationFlow, NftSale } from '@infinityxyz/lib/types/core';
+import { Collection, CreationFlow, NftSale, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
 import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
+import { Transaction } from 'types/Transaction';
+import { getDocRefByTime, getIncomingStats } from 'utils';
 
-/**
- * represents an ethereum transaction containing sales of one or more nfts
- */
-export type Transaction = { sales: NftSale[]; totalPrice: number };
+
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
@@ -35,36 +32,6 @@ const MAX_SALES_PER_BATCH = 80;
  * time that collection sales will idle for until being written to the db
  */
 const DEBOUNCE_INTERVAL = 60_000;
-
-function getIncomingStats(data: Transaction | NftSale): Stats {
-  if ('totalPrice' in data) {
-    const totalNumSales = data.sales.reduce((sum, sale) => sum + sale.quantity, 0);
-    const incomingStats: Stats = {
-      chainId: data.sales[0].chainId,
-      collectionAddress: data.sales[0].collectionAddress,
-      floorPrice: data.sales[0].price,
-      ceilPrice: data.sales[0].price,
-      totalVolume: data.sales[0].price * totalNumSales,
-      totalNumSales,
-      avgPrice: data.sales[0].price,
-      updatedAt: data.sales[0].timestamp
-    };
-    return incomingStats;
-  }
-
-  const incomingStats: Stats = {
-    chainId: data.chainId,
-    collectionAddress: data.collectionAddress,
-    tokenId: data.tokenId,
-    floorPrice: data.price,
-    ceilPrice: data.price,
-    totalVolume: data.price,
-    totalNumSales: 1,
-    avgPrice: data.price,
-    updatedAt: data.timestamp
-  };
-  return incomingStats;
-}
 
 export function debouncedSalesUpdater(): EventEmitter {
   const collections: Map<string, { data: SalesData; debouncedWrite: Promise<void> }> = new Map();
@@ -161,32 +128,23 @@ export function debouncedSalesUpdater(): EventEmitter {
   emitter.on('sales', async (tx: Transaction) => {
     const { sales } = tx;
     if (Array.isArray(sales) && sales.length > 0) {
-      const salesByCollection = sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
-        if (!acc[sale.collectionAddress]) {
-          acc[sale.collectionAddress] = [];
-        }
-        acc[sale.collectionAddress].push(sale);
-        return acc;
-      }, {});
-
+      const salesByCollection = groupSalesByCollection(sales);
       const collectionData = await getCollectionsFromSales(sales);
 
       void performSafeDocumentWrites(tx, collectionData);
 
       for (const [collectionAddress, sales] of Object.entries(salesByCollection)) {
         const totalSalePriceInCollection = sales.reduce((sum, item) => item.price + sum, 0);
-        if (!collections.get(collectionAddress)) {
-          if (collectionData?.[collectionAddress]?.state?.create?.step !== CreationFlow.Complete) {
-            void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
-          }
 
+        if (!collections.get(collectionAddress)) {
+          if(!isCollectionIndexed(collectionData?.[collectionAddress])) {
+            void attemptToIndex({ address: collectionAddress, chainId: sales[0]?.chainId });
+          } 
           const debouncedWrite = (collectionAddress: string): Promise<void> => {
             return new Promise<void>((resolve) => {
               setTimeout(async () => {
                 try {
                   const collection = collections.get(collectionAddress);
-                  logger.log(`Saving collection: ${collectionAddress}`);
-
                   collections.delete(collectionAddress);
                   if (collection?.data) {
                     await updateCollectionSales(collection.data.transactions);
@@ -199,6 +157,7 @@ export function debouncedSalesUpdater(): EventEmitter {
               }, DEBOUNCE_INTERVAL);
             });
           };
+
           collections.set(collectionAddress, {
             data: { transactions: [{ sales, totalPrice: totalSalePriceInCollection }] },
             debouncedWrite: debouncedWrite(collectionAddress)
@@ -244,21 +203,22 @@ async function updateCollectionSalesHelper(transactions: Transaction[]) {
     /**
      * add transactions to each interval
      */
-    for (const baseTime of [...Object.values(BASE_TIME), 'total']) {
+    for (const statsPeriod of [...Object.values(StatsPeriod), 'total']) {
+      const period = statsPeriod as StatsPeriod;
       for (const transaction of validTransactions) {
         const time = transaction.sales[0].timestamp;
-        const collectionDocRef = getDocumentRefByTime(
+        const collectionDocRef = getDocRefByTime(
           time,
-          baseTime as BASE_TIME | 'total',
+          period,
           collectionAddress,
           chainId
         );
         addToUpdates(collectionDocRef, transaction);
 
         for (const sale of transaction.sales) {
-          const tokenDocRef = getDocumentRefByTime(
+          const tokenDocRef = getDocRefByTime(
             time,
-            baseTime as BASE_TIME | 'total',
+            statsPeriod as StatsPeriod,
             collectionAddress,
             chainId,
             sale.tokenId
@@ -372,4 +332,20 @@ async function attemptToIndex(collection: { address: string; chainId: string }) 
     logger.error(`Failed to enqueue collection. ${collection.chainId}:${collection.address}`);
     logger.error(err);
   }
+}
+
+
+function groupSalesByCollection(sales: NftSale[]): { [address: string]: NftSale[] } {
+  return sales.reduce((acc: { [address: string]: NftSale[] }, sale: NftSale) => {
+    if (!acc[sale.collectionAddress]) {
+      acc[sale.collectionAddress] = [];
+    }
+    acc[sale.collectionAddress].push(sale);
+    return acc;
+  }, {});
+}
+
+
+function isCollectionIndexed(collection?: Partial<Collection>): boolean {
+  return collection?.state?.create?.step === CreationFlow.Complete;
 }

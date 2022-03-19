@@ -1,7 +1,7 @@
-import { getDocumentRefByTime } from '../utils';
-import { BASE_TIME, Stats } from '../types';
+import { getDocRefByTime, getDocumentRefByTime } from '../utils';
 import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
+import { Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 
 export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
   if (!prevStats) {
@@ -24,7 +24,7 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
 };
 
 const saveInitialCollectionStats = async (
-  cs: CollectionStats,
+  openseaStats: CollectionStats,
   collectionAddress: string,
   chainId = '1'
 ): Promise<void> => {
@@ -34,14 +34,23 @@ const saveInitialCollectionStats = async (
   const totalInfo: Stats = {
     chainId,
     collectionAddress,
-    floorPrice: cs.floor_price,
-    ceilPrice: 0,
-    totalVolume: cs.total_volume,
-    totalNumSales: cs.total_sales,
-    avgPrice: cs.average_price,
+
+    floorPrice: openseaStats.floor_price,
+    prevFloorPrice: openseaStats.floor_price,
+    
+
+    ceilPrice: openseaStats.floor_price,
+    prevCeilPrice: openseaStats.floor_price,
+    ceilPricePercentChange: 0,
+
+    volume: openseaStats.total_volume,
+    numSales: openseaStats.total_sales,
+    avgPrice: openseaStats.average_price,
+    floorPriceChange: 0,
+
     updatedAt: timestamp
   };
-  const totalStatsRef = getDocumentRefByTime(timestamp, 'total', collectionAddress, chainId);
+  const totalStatsRef = getDocRefByTime(timestamp, StatsPeriod, collectionAddress, chainId);
   batchHandler.add(totalStatsRef, totalInfo, { merge: true });
 
   // --- Daily ---
