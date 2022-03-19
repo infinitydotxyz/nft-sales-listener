@@ -1,9 +1,9 @@
 import { firestoreConstants, getTimestampFromStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
-import { aggregateStats, getNewStats } from './stats.model';
+import { aggregateAllTimeStats, aggregateStats, getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
-import { Collection, NftSale, OrderDirection, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { AllTimeStats, Collection, NftSale, OrderDirection, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
 import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
 import { TransactionType } from 'types/Transaction';
@@ -263,12 +263,18 @@ export default class DebouncedSalesUpdater {
             existingStats as PreAggregationStats
           );
           if (mergedStats) {
-            const aggregatedStats: Stats = aggregateStats(
-              prevStats,
-              mergedStats,
-              docToUpdate.ref.id,
-              docToUpdate.period
-            );
+            let aggregatedStats: Stats | AllTimeStats;
+            if(docToUpdate.period === StatsPeriod.All) {
+              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period)
+            } else {
+              aggregatedStats = aggregateStats(
+                prevStats,
+                mergedStats,
+                docToUpdate.ref.id,
+                docToUpdate.period
+              );
+            }
+
             /**
              * save collection stats
              * min of 5 per collection
@@ -289,12 +295,17 @@ export default class DebouncedSalesUpdater {
             existingStats as PreAggregationStats
           );
           if (mergedStats) {
-            const aggregatedStats: Stats = aggregateStats(
-              prevStats,
-              mergedStats,
-              docToUpdate.ref.id,
-              docToUpdate.period
-            );
+            let aggregatedStats: Stats | AllTimeStats;
+            if(docToUpdate.period === StatsPeriod.All) {
+              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period)
+            } else {
+              aggregatedStats = aggregateStats(
+                prevStats,
+                mergedStats,
+                docToUpdate.ref.id,
+                docToUpdate.period
+              );
+            }
             /**
              * min of 5 (all token ids are the same and in the same time interval)
              * max of 5 * num sales (different token id for every sale)
