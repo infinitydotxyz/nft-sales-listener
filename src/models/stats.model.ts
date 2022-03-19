@@ -43,7 +43,7 @@ export const getNewStats = (
 };
 
 const calcPercentChange = (prev = NaN, current: number) => {
-  const change = prev - current;
+  const change = current - prev;
   const decimal = change / Math.abs(prev);
   const percent = decimal * 100;
 
