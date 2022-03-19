@@ -14,4 +14,3 @@ export interface PreParsedNftSale {
   source: SaleSource;
   tokenStandard: TokenStandard;
 }
-

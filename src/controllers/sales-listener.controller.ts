@@ -7,7 +7,7 @@ import { PreParsedNftSale } from '../types/index';
 import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
-import { debouncedSalesUpdater } from 'models/debouncedSalesUpdater';
+import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
 import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 
 const ETH_CHAIN_ID = '1';
@@ -203,83 +203,6 @@ const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesL
   return (await ethProvider.getTransaction(txHash)).data;
 };
 
-// todo: check firestore collections
-// const pruneERC721 = async (id: string, address: string) => {
-//   logger.log('Pruning ERC721', id, address);
-//   const query = await firebase.db
-//     .collectionGroup('listings')
-//     .where('metadata.asset.id', '==', id)
-//     .where('metadata.asset.address', '==', address)
-//     .limit(100)
-//     .get();
-
-//   const contract = new ethers.Contract(address, ERC721ABI, ethProvider);
-//   try {
-//     for (let i = 0; i < query.docs.length; i++) {
-//       const doc = query.docs[i];
-//       const ref = doc.ref;
-//       const data = doc.data();
-//       const maker: string = data.maker as string;
-
-//       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-//       let owner: string = await contract.ownerOf(id);
-//       owner = trimLowerCase(owner);
-
-//       if (owner !== NULL_ADDRESS && owner !== maker) {
-//         logger.log('stale', maker, owner, address, id);
-//         ref
-//           .delete()
-//           .then(() => {
-//             logger.log('pruned', doc.id, maker, owner, address, id);
-//           })
-//           .catch((err) => {
-//             logger.error('Error deleting', doc.id, maker, err);
-//           });
-//       }
-//     }
-//   } catch (err) {
-//     logger.error('Error pruning listing', err);
-//   }
-// };
-
-// todo: check firestore collections
-// const pruneERC1155 = async (id: string, address: string, seller: string) => {
-//   logger.log('Pruning ERC1155', id, address);
-//   const query = await firebase.db
-//     .collectionGroup('listings')
-//     .where('metadata.asset.id', '==', id)
-//     .where('metadata.asset.address', '==', address)
-//     .limit(100)
-//     .get();
-
-//   const contract = new ethers.Contract(address, ERC1155ABI, ethProvider);
-//   try {
-//     for (let i = 0; i < query.docs.length; i++) {
-//       const doc = query.docs[i];
-//       const ref = doc.ref;
-//       const data = doc.data();
-//       const maker = data.maker;
-
-//       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-//       const balance = await contract.balanceOf(seller, id);
-
-//       if (seller !== NULL_ADDRESS && seller === maker && balance === 0) {
-//         logger.log('stale', maker, seller, address, id);
-//         ref
-//           .delete()
-//           .then(() => {
-//             logger.log('pruned', doc.id, maker, seller, address, id);
-//           })
-//           .catch((err) => {
-//             logger.error('Error deleting', doc.id, maker, err);
-//           });
-//       }
-//     }
-//   } catch (err) {
-//     logger.error('Error pruning listing', err);
-//   }
-// };
-
 const execute = (): void => {
   /*
     --- Listen Opensea Sales event
@@ -287,7 +210,7 @@ const execute = (): void => {
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
-  const salesEmitter = debouncedSalesUpdater();
+  const salesUpdater = new DebouncedSalesUpdater();
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
@@ -312,7 +235,6 @@ const execute = (): void => {
       break;
     }
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
       const decodedResponse: DecodedAtomicMatchInputs = openseaIface.decodeFunctionData(
         'atomicMatch_',
@@ -323,7 +245,7 @@ const execute = (): void => {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
         const { sales, totalPrice } = parseSaleOrders(saleOrders);
 
-        salesEmitter.emit('sales', { sales, totalPrice });
+        await salesUpdater.saveTransaction({ sales, totalPrice });
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);

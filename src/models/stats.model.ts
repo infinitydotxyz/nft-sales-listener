@@ -1,21 +1,23 @@
-import { getDocRefByTime, getDocumentRefByTime } from '../utils';
+import { getDocRefByTime } from '../utils';
 import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
-import { Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { PreAggregationStats } from 'types/PreAggregationStats';
+import { getTimestampFromStatsDocId } from '@infinityxyz/lib/utils';
 
-export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats): Stats => {
+export const getNewStats = (prevStats: PreAggregationStats | undefined, incomingStats: PreAggregationStats): PreAggregationStats => {
   if (!prevStats) {
     return incomingStats;
   }
 
-  const totalVolume = prevStats.totalVolume + incomingStats.totalVolume;
-  const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
+  const volume = prevStats.volume + incomingStats.volume;
+  const numSales = prevStats.numSales + incomingStats.numSales;
   return {
     floorPrice: Math.min(prevStats.floorPrice, incomingStats.floorPrice),
     ceilPrice: Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
-    totalVolume,
-    totalNumSales,
-    avgPrice: totalVolume / totalNumSales,
+    volume,
+    numSales,
+    avgPrice: volume / numSales,
     updatedAt: incomingStats.updatedAt,
     chainId: incomingStats.chainId,
     collectionAddress: incomingStats.collectionAddress,
@@ -23,78 +25,171 @@ export const getNewStats = (prevStats: Stats | undefined, incomingStats: Stats):
   };
 };
 
+export const aggregateStats = (lastIntervalStats: Stats | undefined, currentIntervalStats: PreAggregationStats, currentDocId: string, period: StatsPeriod): Stats => {
+  const calcPercentChange = (prev = NaN, current: number) => {
+    const change = prev - current;
+    const decimal = change / Math.abs(prev);
+    const percent = decimal * 100;
+
+    if(Number.isNaN(percent)) {
+      return current;
+    }
+
+    return percent;
+  }
+  const aggregated: Stats = {
+    ...currentIntervalStats,
+    prevFloorPrice: lastIntervalStats?.floorPrice ?? NaN,
+    floorPricePercentChange: calcPercentChange(lastIntervalStats?.floorPrice, currentIntervalStats.floorPrice),
+    prevCeilPrice: lastIntervalStats?.ceilPrice ?? NaN,
+    ceilPricePercentChange: calcPercentChange(lastIntervalStats?.ceilPrice, currentIntervalStats.ceilPrice),
+
+    prevVolume: lastIntervalStats?.volume ?? NaN,
+    volumePercentChange: calcPercentChange(lastIntervalStats?.volume, currentIntervalStats.volume),
+
+    prevNumSales: lastIntervalStats?.numSales ?? NaN,
+
+    numSalesPercentChange: calcPercentChange(lastIntervalStats?.numSales, currentIntervalStats.numSales),
+
+    prevAvgPrice: lastIntervalStats?.avgPrice ?? NaN,
+
+    avgPricePercentChange: calcPercentChange(lastIntervalStats?.avgPrice, currentIntervalStats.avgPrice),
+
+    timestamp: getTimestampFromStatsDocId(currentDocId, period)
+  }
+
+  return aggregated;
+}
+
 const saveInitialCollectionStats = async (
   openseaStats: CollectionStats,
   collectionAddress: string,
   chainId = '1'
 ): Promise<void> => {
   const batchHandler = new FirestoreBatchHandler();
-
-  const timestamp = Date.now();
-  const totalInfo: Stats = {
+  const updatedAt = Date.now();
+  const collectionInfo = {
     chainId,
     collectionAddress,
+    updatedAt,
+  }
+
+
+
+  const totalStatsRef = getDocRefByTime(updatedAt, StatsPeriod.All, collectionAddress, chainId);
+  const totalStats: AllTimeStats = {
+    ...collectionInfo,
 
     floorPrice: openseaStats.floor_price,
-    prevFloorPrice: openseaStats.floor_price,
-    
 
     ceilPrice: openseaStats.floor_price,
-    prevCeilPrice: openseaStats.floor_price,
-    ceilPricePercentChange: 0,
 
     volume: openseaStats.total_volume,
-    numSales: openseaStats.total_sales,
-    avgPrice: openseaStats.average_price,
-    floorPriceChange: 0,
 
-    updatedAt: timestamp
+    numSales: openseaStats.total_sales,
+
+    avgPrice: openseaStats.average_price,
+
+    timestamp: getTimestampFromStatsDocId(totalStatsRef.id, StatsPeriod.All)
   };
-  const totalStatsRef = getDocRefByTime(timestamp, StatsPeriod, collectionAddress, chainId);
-  batchHandler.add(totalStatsRef, totalInfo, { merge: true });
+
+  batchHandler.add(totalStatsRef, totalStats, { merge: true });
 
   // --- Daily ---
-  const dailyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.DAILY, collectionAddress, chainId);
+  const dailyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Daily, collectionAddress, chainId);
+  const dailyStats: Stats = {
+    ...collectionInfo,
+
+    floorPrice: 0,
+    prevFloorPrice: 0,
+    floorPricePercentChange: 0,
+
+    ceilPrice: 0,
+    prevCeilPrice: 0,
+    ceilPricePercentChange: 0,
+
+    volume: openseaStats.one_day_volume,
+    volumePercentChange: 0,
+    prevVolume: openseaStats.one_day_volume,
+
+    numSales: openseaStats.one_day_sales,
+    prevNumSales: openseaStats.one_day_sales,
+    numSalesPercentChange: 0,
+
+    avgPrice: openseaStats.one_day_average_price,
+    prevAvgPrice: openseaStats.one_day_average_price,
+    avgPricePercentChange: 0,
+
+    timestamp: getTimestampFromStatsDocId(dailyStatsRef.id, StatsPeriod.Daily),
+  }
   batchHandler.add(
     dailyStatsRef,
-    {
-      floorPrice: 0,
-      ceilPrice: 0,
-      totalVolume: cs.one_day_volume,
-      totalNumSales: cs.one_day_sales,
-      avgPrice: cs.one_day_average_price,
-      updatedAt: timestamp
-    },
+    dailyStats,
     { merge: true }
   );
 
   // --- Weekly ---
-  const weeklyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.WEEKLY, collectionAddress, chainId);
+  const weeklyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Weekly, collectionAddress, chainId);
+  const weeklyStats: Stats = {
+    ...collectionInfo,
+    floorPrice: 0,
+    prevFloorPrice: 0,
+    floorPricePercentChange: 0,
+
+    ceilPrice: 0,
+    prevCeilPrice: 0,
+    ceilPricePercentChange: 0,
+
+    volume: openseaStats.seven_day_volume,
+    volumePercentChange: 0,
+    prevVolume: openseaStats.seven_day_volume,
+
+    numSales: openseaStats.seven_day_sales,
+    prevNumSales: openseaStats.seven_day_sales,
+    numSalesPercentChange: 0,
+
+    avgPrice: openseaStats.seven_day_average_price,
+    prevAvgPrice: openseaStats.seven_day_average_price,
+    avgPricePercentChange: 0,
+
+    timestamp: getTimestampFromStatsDocId(weeklyStatsRef.id, StatsPeriod.Weekly),
+  }
   batchHandler.add(
     weeklyStatsRef,
-    {
-      floorPrice: 0,
-      ceilPrice: 0,
-      totalVolume: cs.seven_day_volume,
-      totalNumSales: cs.seven_day_sales,
-      avgPrice: cs.seven_day_average_price,
-      updatedAt: timestamp
-    },
+    weeklyStats,
     { merge: true }
   );
 
   // --- Monthly ---
-  const monthlyStatsRef = getDocumentRefByTime(timestamp, BASE_TIME.MONTHLY, collectionAddress, chainId);
+  const monthlyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Monthly, collectionAddress, chainId);
+  const monthlyStats: Stats = {
+    ...collectionInfo,
+    floorPrice: 0,
+    prevFloorPrice: 0,
+    floorPricePercentChange: 0,
+
+    ceilPrice: 0,
+    prevCeilPrice: 0,
+    ceilPricePercentChange: 0,
+
+    volume: openseaStats.thirty_day_volume,
+    volumePercentChange: 0,
+    prevVolume: openseaStats.thirty_day_volume,
+
+    numSales: openseaStats.thirty_day_sales,
+    prevNumSales: openseaStats.thirty_day_sales,
+    numSalesPercentChange: 0,
+
+    avgPrice: openseaStats.thirty_day_average_price,
+    prevAvgPrice: openseaStats.thirty_day_average_price,
+    avgPricePercentChange: 0,
+
+    timestamp: getTimestampFromStatsDocId(monthlyStatsRef.id, StatsPeriod.Monthly),
+  };
+
   batchHandler.add(
     monthlyStatsRef,
-    {
-      floorPrice: 0,
-      ceilPrice: 0,
-      totalVolume: cs.thirty_day_volume,
-      totalNumSales: cs.thirty_day_sales,
-      avgPrice: cs.thirty_day_average_price,
-      updatedAt: timestamp
-    },
+    monthlyStats,
     { merge: true }
   );
 

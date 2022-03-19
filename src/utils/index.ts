@@ -1,10 +1,16 @@
 import { ethers } from 'ethers';
 import { firebase } from 'container';
-import { firestoreConstants, getCollectionDocId, getStatsCollName, getStatsDocId, StatsType } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getCollectionDocId,
+  getStatsCollName,
+  getStatsDocId,
+  StatsType
+} from '@infinityxyz/lib/utils';
 import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
-import { StatsPeriod } from '@infinityxyz/lib/types/core';
-import { Transaction } from 'types/Transaction';
+import { Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
+import { TransactionType } from 'types/Transaction';
 
 /**
  * returns a random int between min (inclusive) and max (inclusive)
@@ -19,7 +25,6 @@ export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
 }
-
 
 export const convertWeiToEther = (price: BigInt): number => {
   return parseFloat(ethers.utils.formatEther(price.toString()));
@@ -36,10 +41,9 @@ export const getDocRefByTime = (
     .collection(firestoreConstants.COLLECTIONS_COLL)
     .doc(getCollectionDocId({ collectionAddress, chainId }));
 
-
-    /**
-     * collection or nft ref
-     */
+  /**
+   * collection or nft ref
+   */
   let baseRef: FirebaseFirestore.DocumentReference = collectionRef;
   let type: StatsType = StatsType.Collection;
 
@@ -50,16 +54,14 @@ export const getDocRefByTime = (
     type = StatsType.Nft;
   }
 
-  
   const collectionName = getStatsCollName(period, type);
   const docId = getStatsDocId(timestamp, period);
   const statsRef = baseRef.collection(collectionName).doc(docId);
 
-
   return statsRef;
 };
 
-export function getIncomingStats(data: Transaction | NftSale): PreAggregationStats {
+export function getIncomingStats(data: TransactionType | NftSale): PreAggregationStats {
   if ('totalPrice' in data) {
     const numSales = data.sales.reduce((sum, sale) => sum + sale.quantity, 0);
     const incomingStats: PreAggregationStats = {
@@ -70,7 +72,7 @@ export function getIncomingStats(data: Transaction | NftSale): PreAggregationSta
       volume: data.sales[0].price * numSales,
       numSales,
       avgPrice: data.sales[0].price,
-      updatedAt: data.sales[0].timestamp,
+      updatedAt: data.sales[0].timestamp
     };
     return incomingStats;
   }
@@ -87,4 +89,9 @@ export function getIncomingStats(data: Transaction | NftSale): PreAggregationSta
     updatedAt: data.timestamp
   };
   return incomingStats;
+}
+
+
+export function isCollectionIndexed(collection?: Partial<Collection>): boolean {
+  return collection?.state?.create?.step === CreationFlow.Complete;
 }
