@@ -7,3 +7,5 @@ const main = (): void => {
   logger.log(chalk.blue('---  Running NFT Sales Listener ----'));
   runOpenseaSalesListener();
 };
+
+main();
