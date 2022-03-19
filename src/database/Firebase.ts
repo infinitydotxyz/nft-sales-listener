@@ -1,11 +1,11 @@
 import { singleton } from 'tsyringe';
 import firebaseAdmin, { ServiceAccount } from 'firebase-admin';
 import { Bucket, File } from '@google-cloud/storage';
-import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT, NFTS_COLL } from '../constants';
+import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Firebase {
@@ -35,7 +35,7 @@ export default class Firebase {
     chainId: string,
     address: string
   ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${trimLowerCase(address)}`);
+    const collectionDoc = this.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({collectionAddress: address, chainId }));
     return collectionDoc;
   }
 
@@ -44,7 +44,7 @@ export default class Firebase {
     address: string
   ): FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData> {
     const collectionDoc = this.getCollectionDocRef(chainId, address);
-    const nftsCollection = collectionDoc.collection(NFTS_COLL);
+    const nftsCollection = collectionDoc.collection(firestoreConstants.COLLECTION_NFTS_COLL);
     return nftsCollection;
   }
 

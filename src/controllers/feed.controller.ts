@@ -10,10 +10,10 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { firebase, providers } from 'container';
-import { Transaction } from 'models/debouncedSalesUpdater';
+import { TransactionType } from 'types/Transaction';
 
 export async function writeSalesToFeed(
-  { sales }: Transaction,
+  { sales }: TransactionType,
   collections: { [address: string]: Partial<Collection> }
 ) {
   try {
