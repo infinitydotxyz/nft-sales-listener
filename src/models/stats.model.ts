@@ -6,7 +6,7 @@ import { PreAggregationStats } from 'types/PreAggregationStats';
 import { getTimestampFromStatsDocId } from '@infinityxyz/lib/utils';
 
 const round = (value: number, decimals: number) => {
-  const decimalsFactor = 10^decimals;
+  const decimalsFactor = Math.pow(10, decimals);
   return Math.floor(value * decimalsFactor) / decimalsFactor;
 }
 
