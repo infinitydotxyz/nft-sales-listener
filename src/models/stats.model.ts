@@ -10,11 +10,11 @@ export const getNewStats = (prevStats: PreAggregationStats | undefined, incoming
     return incomingStats;
   }
 
-  const volume = prevStats.volume + incomingStats.volume;
-  const numSales = prevStats.numSales + incomingStats.numSales;
+  const volume = Number.isNaN(prevStats.volume) ? incomingStats.volume : prevStats.volume + incomingStats.volume;
+  const numSales = Number.isNaN(prevStats.numSales) ? incomingStats.numSales : prevStats.numSales + incomingStats.numSales;
   return {
-    floorPrice: Math.min(prevStats.floorPrice, incomingStats.floorPrice),
-    ceilPrice: Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
+    floorPrice: Number.isNaN(prevStats.floorPrice) ? incomingStats.floorPrice : Math.min(prevStats.floorPrice, incomingStats.floorPrice),
+    ceilPrice: Number.isNaN(prevStats.ceilPrice) ? incomingStats.ceilPrice : Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
     volume,
     numSales,
     avgPrice: volume / numSales,
@@ -32,7 +32,7 @@ export const aggregateStats = (lastIntervalStats: Stats | undefined, currentInte
     const percent = decimal * 100;
 
     if(Number.isNaN(percent)) {
-      return current;
+      return 0;
     }
 
     return percent;
@@ -100,25 +100,25 @@ const saveInitialCollectionStats = async (
   const dailyStats: Stats = {
     ...collectionInfo,
 
-    floorPrice: 0,
-    prevFloorPrice: 0,
-    floorPricePercentChange: 0,
+    floorPrice: NaN,
+    prevFloorPrice: NaN,
+    floorPricePercentChange: NaN,
 
-    ceilPrice: 0,
-    prevCeilPrice: 0,
-    ceilPricePercentChange: 0,
+    ceilPrice: NaN,
+    prevCeilPrice: NaN,
+    ceilPricePercentChange: NaN,
 
     volume: openseaStats.one_day_volume,
-    volumePercentChange: 0,
+    volumePercentChange: NaN,
     prevVolume: openseaStats.one_day_volume,
 
     numSales: openseaStats.one_day_sales,
     prevNumSales: openseaStats.one_day_sales,
-    numSalesPercentChange: 0,
+    numSalesPercentChange: NaN,
 
     avgPrice: openseaStats.one_day_average_price,
     prevAvgPrice: openseaStats.one_day_average_price,
-    avgPricePercentChange: 0,
+    avgPricePercentChange: NaN,
 
     timestamp: getTimestampFromStatsDocId(dailyStatsRef.id, StatsPeriod.Daily),
   }
