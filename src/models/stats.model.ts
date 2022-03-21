@@ -3,7 +3,7 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import { getStatsDocInfo, parseStatsDocId } from '@infinityxyz/lib/utils';
+import { ALL_TIME_STATS_TIMESTAMP, parseStatsDocId } from '@infinityxyz/lib/utils';
 
 const round = (value: number, decimals: number) => {
   const decimalsFactor = Math.pow(10, decimals);
@@ -136,13 +136,12 @@ export function getPrevStats(
 
 export function aggregateAllTimeStats(
   currentIntervalStats: PreAggregationStats,
-  currentDocId: string,
+  _currentDocId: string,
   period: StatsPeriod.All
 ): AllTimeStats {
-  const { timestamp } = parseStatsDocId(currentDocId);
   const allTimeStats: AllTimeStats = {
     ...currentIntervalStats,
-    timestamp,
+    timestamp: ALL_TIME_STATS_TIMESTAMP,
     period,
   };
   return allTimeStats;
@@ -188,7 +187,6 @@ const saveInitialCollectionStats = async (
   };
 
   const totalStatsRef = getDocRefByTime(updatedAt, StatsPeriod.All, collectionAddress, chainId);
-  const {timestamp} = parseStatsDocId(totalStatsRef.id);
   const totalStats: AllTimeStats = {
     ...collectionInfo,
 
@@ -202,7 +200,7 @@ const saveInitialCollectionStats = async (
 
     avgPrice: round(openseaStats.average_price, 4),
 
-    timestamp,
+    timestamp: ALL_TIME_STATS_TIMESTAMP,
     period: StatsPeriod.All,
   };
 
