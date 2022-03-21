@@ -3,7 +3,7 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import { getTimestampFromStatsDocId } from '@infinityxyz/lib/utils';
+import { getStatsDocInfo, parseStatsDocId } from '@infinityxyz/lib/utils';
 
 const round = (value: number, decimals: number) => {
   const decimalsFactor = Math.pow(10, decimals);
@@ -70,6 +70,7 @@ export function getPrevStats(
   if (prevMostRecentStatsDocId === onePeriodAgoDocId) {
     prevStats = prevMostRecentStats;
   } else if (prevMostRecentStatsDocId === twoPeriodsAgoDocId) {
+    const {timestamp} = parseStatsDocId(onePeriodAgoDocId);
 
     prevStats = {
       chainId: prevMostRecentStats.chainId,
@@ -96,9 +97,11 @@ export function getPrevStats(
       avgPricePercentChange: 0,
 
       updatedAt: Date.now(),
-      timestamp: getTimestampFromStatsDocId(onePeriodAgoDocId, period)
+      timestamp,
+      period
     };
   } else {
+    const {timestamp} = parseStatsDocId(twoPeriodsAgoDocId);
     prevStats = {
       chainId: prevMostRecentStats.chainId,
       collectionAddress: prevMostRecentStats.collectionAddress,
@@ -124,7 +127,8 @@ export function getPrevStats(
       avgPricePercentChange: 0,
 
       updatedAt: Date.now(),
-      timestamp: getTimestampFromStatsDocId(twoPeriodsAgoDocId, period)
+      timestamp,
+      period
     }
   }
   return prevStats;
@@ -135,9 +139,11 @@ export function aggregateAllTimeStats(
   currentDocId: string,
   period: StatsPeriod.All
 ): AllTimeStats {
+  const { timestamp } = parseStatsDocId(currentDocId);
   const allTimeStats: AllTimeStats = {
     ...currentIntervalStats,
-    timestamp: getTimestampFromStatsDocId(currentDocId, period)
+    timestamp,
+    period,
   };
   return allTimeStats;
 }
@@ -148,6 +154,7 @@ export function aggregateStats(
   currentDocId: string,
   period: StatsPeriod.Hourly | StatsPeriod.Daily | StatsPeriod.Weekly | StatsPeriod.Monthly | StatsPeriod.Yearly
 ): Stats {
+  const { timestamp } = parseStatsDocId(currentDocId);
   const aggregated: Stats = {
     ...currentIntervalStats,
     prevFloorPrice: lastIntervalStats?.floorPrice ?? NaN,
@@ -160,7 +167,8 @@ export function aggregateStats(
     numSalesPercentChange: calcPercentChange(lastIntervalStats?.numSales, currentIntervalStats.numSales),
     prevAvgPrice: lastIntervalStats?.avgPrice ?? NaN,
     avgPricePercentChange: calcPercentChange(lastIntervalStats?.avgPrice, currentIntervalStats.avgPrice),
-    timestamp: getTimestampFromStatsDocId(currentDocId, period)
+    timestamp,
+    period
   };
 
   return aggregated;
@@ -180,6 +188,7 @@ const saveInitialCollectionStats = async (
   };
 
   const totalStatsRef = getDocRefByTime(updatedAt, StatsPeriod.All, collectionAddress, chainId);
+  const {timestamp} = parseStatsDocId(totalStatsRef.id);
   const totalStats: AllTimeStats = {
     ...collectionInfo,
 
@@ -193,13 +202,16 @@ const saveInitialCollectionStats = async (
 
     avgPrice: round(openseaStats.average_price, 4),
 
-    timestamp: getTimestampFromStatsDocId(totalStatsRef.id, StatsPeriod.All)
+    timestamp,
+    period: StatsPeriod.All,
   };
 
   batchHandler.add(totalStatsRef, totalStats, { merge: true });
 
+
   // --- Daily ---
   const dailyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Daily, collectionAddress, chainId);
+  const {timestamp: dailyTimestamp} = parseStatsDocId(dailyStatsRef.id);
   const dailyStats: Stats = {
     ...collectionInfo,
 
@@ -223,12 +235,14 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: NaN,
     avgPricePercentChange: NaN,
 
-    timestamp: getTimestampFromStatsDocId(dailyStatsRef.id, StatsPeriod.Daily)
+    timestamp: dailyTimestamp,
+    period: StatsPeriod.Daily
   };
   batchHandler.add(dailyStatsRef, dailyStats, { merge: true });
 
   // --- Weekly ---
   const weeklyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Weekly, collectionAddress, chainId);
+  const {timestamp: weeklyTimestamp} = parseStatsDocId(weeklyStatsRef.id);
   const weeklyStats: Stats = {
     ...collectionInfo,
     floorPrice: NaN,
@@ -251,12 +265,14 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: NaN,
     avgPricePercentChange: NaN,
 
-    timestamp: getTimestampFromStatsDocId(weeklyStatsRef.id, StatsPeriod.Weekly)
+    timestamp: weeklyTimestamp,
+    period: StatsPeriod.Weekly
   };
   batchHandler.add(weeklyStatsRef, weeklyStats, { merge: true });
 
   // --- Monthly ---
   const monthlyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Monthly, collectionAddress, chainId);
+  const {timestamp: monthlyTimestamp} = parseStatsDocId(monthlyStatsRef.id);
   const monthlyStats: Stats = {
     ...collectionInfo,
     floorPrice: NaN,
@@ -279,7 +295,9 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: NaN,
     avgPricePercentChange: NaN,
 
-    timestamp: getTimestampFromStatsDocId(monthlyStatsRef.id, StatsPeriod.Monthly)
+    timestamp: monthlyTimestamp,
+
+    period: StatsPeriod.Monthly
   };
 
   batchHandler.add(monthlyStatsRef, monthlyStats, { merge: true });

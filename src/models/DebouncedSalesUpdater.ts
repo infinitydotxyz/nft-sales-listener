@@ -1,4 +1,4 @@
-import { firestoreConstants, getStatsDocId, getTimestampFromStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getStatsDocInfo, parseStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
 import { aggregateAllTimeStats, aggregateStats, getNewStats, getPrevStats } from './stats.model';
@@ -10,6 +10,7 @@ import { TransactionType } from 'types/Transaction';
 import { getDocRefByTime, getIncomingStats, isCollectionIndexed } from 'utils';
 import Transaction from './Transaction';
 import { PreAggregationStats } from 'types/PreAggregationStats';
+import assert from 'assert';
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
@@ -179,9 +180,10 @@ export default class DebouncedSalesUpdater {
 
       const getPrevDocId = (currentDocId: string, period: StatsPeriod) => {
         const ONE_MIN = 60 * 1000;
-        const currentDocIdTimestamp = getTimestampFromStatsDocId(currentDocId, period);
+        const { timestamp: currentDocIdTimestamp, period : parsedPeriod } = parseStatsDocId(currentDocId);
+        assert(period === parsedPeriod, 'invalid period');
         const onePeriodAgoTimestamp = currentDocIdTimestamp - ONE_MIN; 
-        const onePeriodAgoDocId = getStatsDocId(onePeriodAgoTimestamp, period);
+        const { docId: onePeriodAgoDocId } = getStatsDocInfo(onePeriodAgoTimestamp, period);
         return onePeriodAgoDocId;
       };
 
@@ -218,7 +220,7 @@ export default class DebouncedSalesUpdater {
            * collection level
            */
           const collectionDocRef = getDocRefByTime(time, period, collectionAddress, chainId);
-          const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
+          const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
           
           const prevMostRecentStatsQuery = collectionDocRef.parent
             .where('timestamp', '<', docIdTimestamp)
@@ -231,7 +233,7 @@ export default class DebouncedSalesUpdater {
            */
           for (const sale of transaction.sales) {
             const tokenDocRef = getDocRefByTime(time, period, collectionAddress, chainId, sale.tokenId);
-            const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
+            const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
 
             const prevMostRecentStatsQuery = tokenDocRef.parent
               .where('timestamp', '<', docIdTimestamp)
