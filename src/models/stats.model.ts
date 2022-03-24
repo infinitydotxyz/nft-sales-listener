@@ -3,7 +3,7 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import { getTimestampFromStatsDocId } from '@infinityxyz/lib/utils';
+import { AllTimeStatsTimestampType, parseStatsDocId } from '@infinityxyz/lib/utils';
 
 export const getNewStats = (prevStats: PreAggregationStats | undefined, incomingStats: PreAggregationStats): PreAggregationStats => {
   if (!prevStats) {
@@ -55,7 +55,9 @@ export const aggregateStats = (lastIntervalStats: Stats | undefined, currentInte
 
     avgPricePercentChange: calcPercentChange(lastIntervalStats?.avgPrice, currentIntervalStats.avgPrice),
 
-    timestamp: getTimestampFromStatsDocId(currentDocId, period)
+    timestamp: parseStatsDocId(currentDocId).timestamp,
+
+    period: period
   }
 
   return aggregated;
@@ -90,7 +92,9 @@ const saveInitialCollectionStats = async (
 
     avgPrice: openseaStats.average_price,
 
-    timestamp: getTimestampFromStatsDocId(totalStatsRef.id, StatsPeriod.All)
+    timestamp: parseStatsDocId(totalStatsRef.id).timestamp as AllTimeStatsTimestampType,
+
+    period: StatsPeriod.All
   };
 
   batchHandler.add(totalStatsRef, totalStats, { merge: true });
@@ -120,7 +124,8 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: openseaStats.one_day_average_price,
     avgPricePercentChange: 0,
 
-    timestamp: getTimestampFromStatsDocId(dailyStatsRef.id, StatsPeriod.Daily),
+    timestamp: parseStatsDocId(dailyStatsRef.id).timestamp,
+    period: StatsPeriod.Daily
   }
   batchHandler.add(
     dailyStatsRef,
@@ -152,7 +157,8 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: openseaStats.seven_day_average_price,
     avgPricePercentChange: 0,
 
-    timestamp: getTimestampFromStatsDocId(weeklyStatsRef.id, StatsPeriod.Weekly),
+    timestamp: parseStatsDocId(weeklyStatsRef.id).timestamp,
+    period: StatsPeriod.Weekly,
   }
   batchHandler.add(
     weeklyStatsRef,
@@ -184,7 +190,8 @@ const saveInitialCollectionStats = async (
     prevAvgPrice: openseaStats.thirty_day_average_price,
     avgPricePercentChange: 0,
 
-    timestamp: getTimestampFromStatsDocId(monthlyStatsRef.id, StatsPeriod.Monthly),
+    timestamp: parseStatsDocId(monthlyStatsRef.id).timestamp,
+    period: StatsPeriod.Monthly,
   };
 
   batchHandler.add(

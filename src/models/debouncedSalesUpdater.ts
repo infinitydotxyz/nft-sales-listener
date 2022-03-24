@@ -1,4 +1,4 @@
-import { firestoreConstants, getTimestampFromStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, parseStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
 import { aggregateStats, getNewStats } from './stats.model';
@@ -193,7 +193,7 @@ export default class DebouncedSalesUpdater {
       /**
        * add transactions to each interval
        */
-      for (const statsPeriod of [...Object.values(StatsPeriod), 'total']) {
+      for (const statsPeriod of [...Object.values(StatsPeriod)]) {
         const period = statsPeriod as StatsPeriod;
         for (const transaction of validTransactions) {
           const time = transaction.sales[0].timestamp;
@@ -201,7 +201,7 @@ export default class DebouncedSalesUpdater {
            * collection level
            */
           const collectionDocRef = getDocRefByTime(time, period, collectionAddress, chainId);
-          const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
+          const {timestamp: docIdTimestamp} = parseStatsDocId(collectionDocRef.id);
           const prevDocQuery = collectionDocRef.parent
             .where('timestamp', '<', docIdTimestamp)
             .orderBy('timestamp', OrderDirection.Descending)
@@ -213,7 +213,7 @@ export default class DebouncedSalesUpdater {
            */
           for (const sale of transaction.sales) {
             const tokenDocRef = getDocRefByTime(time, period, collectionAddress, chainId, sale.tokenId);
-            const docIdTimestamp = getTimestampFromStatsDocId(collectionDocRef.id, period);
+            const {timestamp: docIdTimestamp} = parseStatsDocId(collectionDocRef.id);
             const prevDocQuery = tokenDocRef.parent
               .where('timestamp', '<', docIdTimestamp)
               .orderBy('timestamp', OrderDirection.Descending)
@@ -326,12 +326,12 @@ export default class DebouncedSalesUpdater {
   /**
    * filters transactions by those that don't yet exist in the db
    */
-  private async getUnsavedTransactions(transactions: TransactionType[], firestoreTxn: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
+  private async getUnsavedTransactions(transactions: TransactionType[], tx: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
     const promises: { promise: Promise<boolean>; transaction: TransactionType }[] = [];
     for (const transaction of transactions) {
       const txHash = transaction.sales[0].txHash;
       promises.push({
-        promise: this.transactionExists(txHash, firestoreTxn),
+        promise: this.transactionExists(txHash , tx),
         transaction
       });
     }
@@ -346,12 +346,12 @@ export default class DebouncedSalesUpdater {
     return unsavedTransactions;
   }
 
-  private async transactionExists(txHash: string, firestoreTxn: FirebaseFirestore.Transaction): Promise<boolean> {
+  private async transactionExists(txHash: string, tx: FirebaseFirestore.Transaction): Promise<boolean> {
     const query = firebase.db
       .collection(firestoreConstants.SALES_COLL)
       .where('txHash', '==', trimLowerCase(txHash))
       .limit(1);
-    const data = await firestoreTxn.get(query);
+    const data = await tx.get(query);
     return !data.empty;
   }
 
