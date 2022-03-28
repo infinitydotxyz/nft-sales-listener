@@ -164,7 +164,7 @@ export default class DebouncedSalesUpdater {
 
     let validTransactions: TransactionType[] = [];
     await firebase.db.runTransaction(async (tx) => {
-      validTransactions = await this.getUnsavedTransactions(transactions);
+      validTransactions = await this.getUnsavedTransactions(transactions, tx);
 
       const updates: {
         [refPath: string]: {
@@ -351,12 +351,12 @@ export default class DebouncedSalesUpdater {
   /**
    * filters transactions by those that don't yet exist in the db
    */
-  private async getUnsavedTransactions(transactions: TransactionType[]): Promise<TransactionType[]> {
+  private async getUnsavedTransactions(transactions: TransactionType[], txn: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
     const promises: { promise: Promise<boolean>; transaction: TransactionType }[] = [];
     for (const transaction of transactions) {
       const txHash = transaction.sales[0].txHash;
       promises.push({
-        promise: this.transactionExists(txHash),
+        promise: this.transactionExists(txHash, txn),
         transaction
       });
     }
@@ -371,12 +371,12 @@ export default class DebouncedSalesUpdater {
     return unsavedTransactions;
   }
 
-  private async transactionExists(txHash: string): Promise<boolean> {
+  private async transactionExists(txHash: string, txn: FirebaseFirestore.Transaction): Promise<boolean> {
     const query = firebase.db
       .collection(firestoreConstants.SALES_COLL)
       .where('txHash', '==', trimLowerCase(txHash))
       .limit(1);
-    const data = await query.get();
+    const data = await txn.get(query);
     return !data.empty;
   }
 
