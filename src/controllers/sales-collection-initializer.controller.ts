@@ -4,7 +4,7 @@ import PQueue from 'p-queue';
 import StatsModel from '../models/stats.model';
 import { logger, opensea } from '../container';
 
-const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
+export const taskQueue = new PQueue({ concurrency: 1, interval: 2000, intervalCap: 2 });
 
 const initCollectionStatsFromOS = async (
   collectionAddress: string,
