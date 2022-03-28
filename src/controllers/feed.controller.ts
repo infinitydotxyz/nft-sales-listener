@@ -42,7 +42,8 @@ export async function writeSalesToFeed(
       const buyer = sales[0].buyer;
       const seller = sales[0].seller;
       const [buyerDisplayName, sellerDisplayName] = await Promise.all(
-        [buyer, seller].map((item) => getUserDisplayName(item, chainId, provider))
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        [buyer, seller].map((item) => getUserDisplayName(item, chainId, provider as any))
       );
 
       const events = sales
