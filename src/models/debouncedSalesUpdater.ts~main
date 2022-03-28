@@ -1,16 +1,15 @@
-import { firestoreConstants, getStatsDocInfo, parseStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, parseStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
-import { aggregateAllTimeStats, aggregateStats, getNewStats, getPrevStats } from './stats.model';
+import { aggregateStats, getNewStats } from './stats.model';
 import { addCollectionToQueue } from 'controllers/sales-collection-initializer.controller';
-import { AllTimeStats, Collection, NftSale, OrderDirection, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { Collection, NftSale, OrderDirection, Stats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { writeSalesToFeed } from 'controllers/feed.controller';
 import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
 import { TransactionType } from 'types/Transaction';
 import { getDocRefByTime, getIncomingStats, isCollectionIndexed } from 'utils';
 import Transaction from './Transaction';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import assert from 'assert';
 
 type SalesData = {
   transactions: { sales: NftSale[]; totalPrice: number }[];
@@ -170,44 +169,26 @@ export default class DebouncedSalesUpdater {
         [refPath: string]: {
           ref: FirebaseFirestore.DocumentReference;
           currentSnapshot: Promise<FirebaseFirestore.DocumentSnapshot>;
-          prevMostRecentSnapshot: Promise<FirebaseFirestore.QuerySnapshot>;
-          onePeriodAgoDocId: string;
-          twoPeriodsAgoDocId: string;
+          prevSnapshot: Promise<FirebaseFirestore.QuerySnapshot>;
           dataToAggregate: TransactionType[] | NftSale[];
           period: StatsPeriod;
         };
       } = {};
 
-      const getPrevDocId = (currentDocId: string, period: StatsPeriod) => {
-        const ONE_MIN = 60 * 1000;
-        const { timestamp: currentDocIdTimestamp, period : parsedPeriod } = parseStatsDocId(currentDocId);
-        assert(period === parsedPeriod, 'invalid period');
-        const onePeriodAgoTimestamp = currentDocIdTimestamp - ONE_MIN; 
-        const { docId: onePeriodAgoDocId } = getStatsDocInfo(onePeriodAgoTimestamp, period);
-        return onePeriodAgoDocId;
-      };
-
       const addToUpdates = <T extends TransactionType | NftSale>(
         ref: FirebaseFirestore.DocumentReference,
-        prevMostRecentQuery: FirebaseFirestore.Query,
+        prevQuery: FirebaseFirestore.Query,
         data: T,
         period: StatsPeriod
       ) => {
-        const currentDocId = ref.id;
-        const onePeriodAgoDocId = getPrevDocId(currentDocId, period);
-        const twoPeriodsAgoDocId = getPrevDocId(onePeriodAgoDocId, period);
-
         updates[ref.path] = {
           ref,
           currentSnapshot: tx.get(ref) as unknown as Promise<FirebaseFirestore.DocumentSnapshot>,
-          prevMostRecentSnapshot: prevMostRecentQuery.get(),
-          onePeriodAgoDocId,
-          twoPeriodsAgoDocId,
+          prevSnapshot: prevQuery.get(),
           dataToAggregate: [...((updates[ref.path]?.dataToAggregate as T[]) ?? []), data] as any,
           period
         };
       };
-
 
       /**
        * add transactions to each interval
@@ -220,26 +201,24 @@ export default class DebouncedSalesUpdater {
            * collection level
            */
           const collectionDocRef = getDocRefByTime(time, period, collectionAddress, chainId);
-          const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
-          
-          const prevMostRecentStatsQuery = collectionDocRef.parent
+          const {timestamp: docIdTimestamp} = parseStatsDocId(collectionDocRef.id);
+          const prevDocQuery = collectionDocRef.parent
             .where('timestamp', '<', docIdTimestamp)
             .orderBy('timestamp', OrderDirection.Descending)
             .limit(1);
-          addToUpdates(collectionDocRef, prevMostRecentStatsQuery, transaction, period);
+          addToUpdates(collectionDocRef, prevDocQuery, transaction, period);
 
           /**
            * nft level
            */
           for (const sale of transaction.sales) {
             const tokenDocRef = getDocRefByTime(time, period, collectionAddress, chainId, sale.tokenId);
-            const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
-
-            const prevMostRecentStatsQuery = tokenDocRef.parent
+            const {timestamp: docIdTimestamp} = parseStatsDocId(collectionDocRef.id);
+            const prevDocQuery = tokenDocRef.parent
               .where('timestamp', '<', docIdTimestamp)
               .orderBy('timestamp', OrderDirection.Descending)
               .limit(1);
-            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, transaction, period);
+            addToUpdates(tokenDocRef, prevDocQuery, transaction, period);
           }
         }
       }
@@ -247,7 +226,7 @@ export default class DebouncedSalesUpdater {
       /**
        * wait for all stats promises to resolve
        */
-      await Promise.all(Object.values(updates).flatMap((item) => [item.currentSnapshot, item.prevMostRecentSnapshot]));
+      await Promise.all(Object.values(updates).flatMap((item) => [item.currentSnapshot, item.prevSnapshot]));
 
       /**
        * save sales for all valid transactions
@@ -262,10 +241,7 @@ export default class DebouncedSalesUpdater {
       let addedToQueue = false;
       for (const docToUpdate of Object.values(updates)) {
         const existingStats = (await docToUpdate.currentSnapshot).data() as Stats | undefined; // promise has already resolved
-        const prevMostRecentDoc =  (await docToUpdate.prevMostRecentSnapshot)?.docs?.[0];
-        const prevMostRecentStats = prevMostRecentDoc?.data?.() as Stats | undefined;
-        const prevStats: Stats | undefined = prevMostRecentStats ? getPrevStats(prevMostRecentStats, prevMostRecentDoc.id, docToUpdate.onePeriodAgoDocId, docToUpdate.twoPeriodsAgoDocId, docToUpdate.period) : undefined; 
-
+        const prevStats = (await docToUpdate.prevSnapshot)?.docs?.[0]?.data?.() as Stats | undefined;
         const sample = docToUpdate.dataToAggregate[0];
 
         /**
@@ -287,13 +263,12 @@ export default class DebouncedSalesUpdater {
             existingStats as PreAggregationStats
           );
           if (mergedStats) {
-            let aggregatedStats: Stats | AllTimeStats;
-            if (docToUpdate.period === StatsPeriod.All) {
-              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period);
-            } else {
-              aggregatedStats = aggregateStats(prevStats, mergedStats, docToUpdate.ref.id, docToUpdate.period);
-            }
-
+            const aggregatedStats: Stats = aggregateStats(
+              prevStats,
+              mergedStats,
+              docToUpdate.ref.id,
+              docToUpdate.period
+            );
             /**
              * save collection stats
              * min of 5 per collection
@@ -302,9 +277,9 @@ export default class DebouncedSalesUpdater {
             tx.set(docToUpdate.ref, aggregatedStats, { merge: true });
           }
         } else {
-          /**
-           * NftSale update
-           */
+        /**
+         * NftSale update
+         */
           const statsToMerge = (docToUpdate.dataToAggregate as NftSale[]).map((sale) => {
             return getIncomingStats(sale);
           });
@@ -314,12 +289,12 @@ export default class DebouncedSalesUpdater {
             existingStats as PreAggregationStats
           );
           if (mergedStats) {
-            let aggregatedStats: Stats | AllTimeStats;
-            if (docToUpdate.period === StatsPeriod.All) {
-              aggregatedStats = aggregateAllTimeStats(mergedStats, docToUpdate.ref.id, docToUpdate.period);
-            } else {
-              aggregatedStats = aggregateStats(prevStats, mergedStats, docToUpdate.ref.id, docToUpdate.period);
-            }
+            const aggregatedStats: Stats = aggregateStats(
+              prevStats,
+              mergedStats,
+              docToUpdate.ref.id,
+              docToUpdate.period
+            );
             /**
              * min of 5 (all token ids are the same and in the same time interval)
              * max of 5 * num sales (different token id for every sale)
@@ -351,12 +326,12 @@ export default class DebouncedSalesUpdater {
   /**
    * filters transactions by those that don't yet exist in the db
    */
-  private async getUnsavedTransactions(transactions: TransactionType[], txn: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
+  private async getUnsavedTransactions(transactions: TransactionType[], tx: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
     const promises: { promise: Promise<boolean>; transaction: TransactionType }[] = [];
     for (const transaction of transactions) {
       const txHash = transaction.sales[0].txHash;
       promises.push({
-        promise: this.transactionExists(txHash, txn),
+        promise: this.transactionExists(txHash , tx),
         transaction
       });
     }
@@ -371,18 +346,15 @@ export default class DebouncedSalesUpdater {
     return unsavedTransactions;
   }
 
-  private async transactionExists(txHash: string, txn: FirebaseFirestore.Transaction): Promise<boolean> {
+  private async transactionExists(txHash: string, tx: FirebaseFirestore.Transaction): Promise<boolean> {
     const query = firebase.db
       .collection(firestoreConstants.SALES_COLL)
       .where('txHash', '==', trimLowerCase(txHash))
       .limit(1);
-    const data = await txn.get(query);
+    const data = await tx.get(query);
     return !data.empty;
   }
 
-  /**
-   * save individual sales to the db
-   */
   private writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
     const salesCollectionRef = firebase.db.collection(firestoreConstants.SALES_COLL);
     for (const sale of sales) {
@@ -391,9 +363,6 @@ export default class DebouncedSalesUpdater {
     }
   }
 
-  /**
-   * enqueues a collection for indexing
-   */
   private async attemptToIndex(collection: { address: string; chainId: string }) {
     try {
       const res = await enqueueCollection(collection, COLLECTION_INDEXING_SERVICE_URL);

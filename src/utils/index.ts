@@ -3,7 +3,7 @@ import { firebase } from 'container';
 import {
   firestoreConstants,
   getCollectionDocId,
-  getStatsDocInfo
+  getStatsDocInfo,
 } from '@infinityxyz/lib/utils';
 import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
 import { Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
@@ -43,17 +43,17 @@ export const getDocRefByTime = (
    * collection or nft ref
    */
   let baseRef: FirebaseFirestore.DocumentReference = collectionRef;
-  let type: 'collection' | 'nft' = 'collection';
+  const isNft = typeof tokenId === 'string';
 
-  if (typeof tokenId === 'string') {
+  if (isNft) {
     const nftDocId = tokenId;
     const nftRef = collectionRef.collection(firestoreConstants.COLLECTION_NFTS_COLL).doc(nftDocId);
     baseRef = nftRef;
-    type = 'nft';
   }
 
-  const collectionName = type === 'collection' ? firestoreConstants.COLLECTION_STATS_COLL : firestoreConstants.NFT_STATS_COLL;
+  const collectionName: string = isNft ? firestoreConstants.NFT_STATS_COLL : firestoreConstants.COLLECTION_STATS_COLL;
   const { docId } = getStatsDocInfo(timestamp, period);
+
   const statsRef = baseRef.collection(collectionName).doc(docId);
 
   return statsRef;

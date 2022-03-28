@@ -3,21 +3,38 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import { AllTimeStatsTimestampType, parseStatsDocId } from '@infinityxyz/lib/utils';
+import { ALL_TIME_STATS_TIMESTAMP, parseStatsDocId } from '@infinityxyz/lib/utils';
 
-export const getNewStats = (prevStats: PreAggregationStats | undefined, incomingStats: PreAggregationStats): PreAggregationStats => {
+const round = (value: number, decimals: number) => {
+  const decimalsFactor = Math.pow(10, decimals);
+  return Math.floor(value * decimalsFactor) / decimalsFactor;
+};
+
+export const getNewStats = (
+  prevStats: PreAggregationStats | undefined,
+  incomingStats: PreAggregationStats
+): PreAggregationStats => {
   if (!prevStats) {
     return incomingStats;
   }
 
-  const volume = prevStats.volume + incomingStats.volume;
-  const numSales = prevStats.numSales + incomingStats.numSales;
+  const volume = Number.isNaN(prevStats.volume) ? incomingStats.volume : prevStats.volume + incomingStats.volume;
+  const numSales = Number.isNaN(prevStats.numSales)
+    ? incomingStats.numSales
+    : prevStats.numSales + incomingStats.numSales;
+  const ceilPrice = Number.isNaN(prevStats.ceilPrice)
+    ? incomingStats.ceilPrice
+    : Math.max(prevStats.ceilPrice, incomingStats.ceilPrice);
+  const floorPrice = Number.isNaN(prevStats.floorPrice)
+    ? incomingStats.floorPrice
+    : Math.min(prevStats.floorPrice, incomingStats.floorPrice);
+
   return {
-    floorPrice: Math.min(prevStats.floorPrice, incomingStats.floorPrice),
-    ceilPrice: Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
-    volume,
+    floorPrice: round(floorPrice, 4),
+    ceilPrice: round(ceilPrice, 4),
+    volume: round(volume, 4),
     numSales,
-    avgPrice: volume / numSales,
+    avgPrice: round(volume / numSales, 4),
     updatedAt: incomingStats.updatedAt,
     chainId: incomingStats.chainId,
     collectionAddress: incomingStats.collectionAddress,
@@ -25,40 +42,133 @@ export const getNewStats = (prevStats: PreAggregationStats | undefined, incoming
   };
 };
 
-export const aggregateStats = (lastIntervalStats: Stats | undefined, currentIntervalStats: PreAggregationStats, currentDocId: string, period: StatsPeriod): Stats => {
-  const calcPercentChange = (prev = NaN, current: number) => {
-    const change = prev - current;
-    const decimal = change / Math.abs(prev);
-    const percent = decimal * 100;
+const calcPercentChange = (prev = NaN, current: number) => {
+  const change = current - prev;
+  const decimal = change / Math.abs(prev);
+  const percent = decimal * 100;
 
-    if(Number.isNaN(percent)) {
-      return current;
-    }
-
-    return percent;
+  if (Number.isNaN(percent)) {
+    return 0;
   }
+
+  return round(percent, 4);
+};
+
+export function getPrevStats(
+  prevMostRecentStats: Stats,
+  prevMostRecentStatsDocId: string,
+  onePeriodAgoDocId: string,
+  twoPeriodsAgoDocId: string,
+  period: StatsPeriod
+): Stats {
+  let prevStats: Stats;
+  /**
+   * always carry over floor price, ceil price, avg price
+   * 
+   * num sales and volume become 0 if there were no sales/volume during the interval
+   */
+  if (prevMostRecentStatsDocId === onePeriodAgoDocId) {
+    prevStats = prevMostRecentStats;
+  } else if (prevMostRecentStatsDocId === twoPeriodsAgoDocId) {
+    const {timestamp} = parseStatsDocId(onePeriodAgoDocId);
+
+    prevStats = {
+      chainId: prevMostRecentStats.chainId,
+      collectionAddress: prevMostRecentStats.collectionAddress,
+
+      floorPrice: prevMostRecentStats.floorPrice,
+      prevFloorPrice: prevMostRecentStats.floorPrice,
+      floorPricePercentChange: 0,
+
+      ceilPrice: prevMostRecentStats.ceilPrice,
+      prevCeilPrice: prevMostRecentStats.ceilPrice,
+      ceilPricePercentChange: 0,
+
+      volume: 0,
+      prevVolume: prevMostRecentStats.volume,
+      volumePercentChange: calcPercentChange(prevMostRecentStats.volume, 0),
+
+      numSales: 0,
+      prevNumSales: prevMostRecentStats.numSales,
+      numSalesPercentChange: calcPercentChange(prevMostRecentStats.numSales, 0),
+
+      avgPrice: prevMostRecentStats.avgPrice,
+      prevAvgPrice: prevMostRecentStats.avgPrice,
+      avgPricePercentChange: 0,
+
+      updatedAt: Date.now(),
+      timestamp,
+      period
+    };
+  } else {
+    const {timestamp} = parseStatsDocId(twoPeriodsAgoDocId);
+    prevStats = {
+      chainId: prevMostRecentStats.chainId,
+      collectionAddress: prevMostRecentStats.collectionAddress,
+
+      floorPrice: prevMostRecentStats.floorPrice,
+      prevFloorPrice: prevMostRecentStats.floorPrice,
+      floorPricePercentChange: 0,
+
+      ceilPrice: prevMostRecentStats.ceilPrice,
+      prevCeilPrice: prevMostRecentStats.ceilPrice,
+      ceilPricePercentChange: 0,
+
+      volume: 0,
+      prevVolume: 0,
+      volumePercentChange: 0,
+
+      numSales: 0,
+      prevNumSales: 0,
+      numSalesPercentChange: 0,
+
+      avgPrice: prevMostRecentStats.avgPrice,
+      prevAvgPrice: prevMostRecentStats.avgPrice,
+      avgPricePercentChange: 0,
+
+      updatedAt: Date.now(),
+      timestamp,
+      period
+    }
+  }
+  return prevStats;
+}
+
+export function aggregateAllTimeStats(
+  currentIntervalStats: PreAggregationStats,
+  _currentDocId: string,
+  period: StatsPeriod.All
+): AllTimeStats {
+  const allTimeStats: AllTimeStats = {
+    ...currentIntervalStats,
+    timestamp: ALL_TIME_STATS_TIMESTAMP,
+    period,
+  };
+  return allTimeStats;
+}
+
+export function aggregateStats(
+  lastIntervalStats: Stats | undefined,
+  currentIntervalStats: PreAggregationStats,
+  currentDocId: string,
+  period: StatsPeriod.Hourly | StatsPeriod.Daily | StatsPeriod.Weekly | StatsPeriod.Monthly | StatsPeriod.Yearly
+): Stats {
+  const { timestamp } = parseStatsDocId(currentDocId);
   const aggregated: Stats = {
     ...currentIntervalStats,
     prevFloorPrice: lastIntervalStats?.floorPrice ?? NaN,
     floorPricePercentChange: calcPercentChange(lastIntervalStats?.floorPrice, currentIntervalStats.floorPrice),
     prevCeilPrice: lastIntervalStats?.ceilPrice ?? NaN,
     ceilPricePercentChange: calcPercentChange(lastIntervalStats?.ceilPrice, currentIntervalStats.ceilPrice),
-
     prevVolume: lastIntervalStats?.volume ?? NaN,
     volumePercentChange: calcPercentChange(lastIntervalStats?.volume, currentIntervalStats.volume),
-
     prevNumSales: lastIntervalStats?.numSales ?? NaN,
-
     numSalesPercentChange: calcPercentChange(lastIntervalStats?.numSales, currentIntervalStats.numSales),
-
     prevAvgPrice: lastIntervalStats?.avgPrice ?? NaN,
-
     avgPricePercentChange: calcPercentChange(lastIntervalStats?.avgPrice, currentIntervalStats.avgPrice),
-
-    timestamp: parseStatsDocId(currentDocId).timestamp,
-
-    period: period
-  }
+    timestamp,
+    period
+  };
 
   return aggregated;
 }
@@ -73,132 +183,122 @@ const saveInitialCollectionStats = async (
   const collectionInfo = {
     chainId,
     collectionAddress,
-    updatedAt,
-  }
-
-
+    updatedAt
+  };
 
   const totalStatsRef = getDocRefByTime(updatedAt, StatsPeriod.All, collectionAddress, chainId);
   const totalStats: AllTimeStats = {
     ...collectionInfo,
 
-    floorPrice: openseaStats.floor_price,
+    floorPrice: round(openseaStats.floor_price, 4),
 
-    ceilPrice: openseaStats.floor_price,
+    ceilPrice: round(openseaStats.floor_price, 4),
 
-    volume: openseaStats.total_volume,
+    volume: round(openseaStats.total_volume, 4),
 
-    numSales: openseaStats.total_sales,
+    numSales: round(openseaStats.total_sales, 4),
 
-    avgPrice: openseaStats.average_price,
+    avgPrice: round(openseaStats.average_price, 4),
 
-    timestamp: parseStatsDocId(totalStatsRef.id).timestamp as AllTimeStatsTimestampType,
-
-    period: StatsPeriod.All
+    timestamp: ALL_TIME_STATS_TIMESTAMP,
+    period: StatsPeriod.All,
   };
 
   batchHandler.add(totalStatsRef, totalStats, { merge: true });
 
+
   // --- Daily ---
   const dailyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Daily, collectionAddress, chainId);
+  const {timestamp: dailyTimestamp} = parseStatsDocId(dailyStatsRef.id);
   const dailyStats: Stats = {
     ...collectionInfo,
 
-    floorPrice: 0,
-    prevFloorPrice: 0,
-    floorPricePercentChange: 0,
+    floorPrice: NaN,
+    prevFloorPrice: NaN,
+    floorPricePercentChange: NaN,
 
-    ceilPrice: 0,
-    prevCeilPrice: 0,
-    ceilPricePercentChange: 0,
+    ceilPrice: NaN,
+    prevCeilPrice: NaN,
+    ceilPricePercentChange: NaN,
 
-    volume: openseaStats.one_day_volume,
-    volumePercentChange: 0,
-    prevVolume: openseaStats.one_day_volume,
+    volume: round(openseaStats.one_day_volume, 4),
+    volumePercentChange: NaN,
+    prevVolume: NaN,
 
-    numSales: openseaStats.one_day_sales,
-    prevNumSales: openseaStats.one_day_sales,
-    numSalesPercentChange: 0,
+    numSales: round(openseaStats.one_day_sales, 4),
+    prevNumSales: NaN,
+    numSalesPercentChange: NaN,
 
-    avgPrice: openseaStats.one_day_average_price,
-    prevAvgPrice: openseaStats.one_day_average_price,
-    avgPricePercentChange: 0,
+    avgPrice: round(openseaStats.one_day_average_price, 4),
+    prevAvgPrice: NaN,
+    avgPricePercentChange: NaN,
 
-    timestamp: parseStatsDocId(dailyStatsRef.id).timestamp,
+    timestamp: dailyTimestamp,
     period: StatsPeriod.Daily
-  }
-  batchHandler.add(
-    dailyStatsRef,
-    dailyStats,
-    { merge: true }
-  );
+  };
+  batchHandler.add(dailyStatsRef, dailyStats, { merge: true });
 
   // --- Weekly ---
   const weeklyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Weekly, collectionAddress, chainId);
+  const {timestamp: weeklyTimestamp} = parseStatsDocId(weeklyStatsRef.id);
   const weeklyStats: Stats = {
     ...collectionInfo,
-    floorPrice: 0,
-    prevFloorPrice: 0,
-    floorPricePercentChange: 0,
+    floorPrice: NaN,
+    prevFloorPrice: NaN,
+    floorPricePercentChange: NaN,
 
-    ceilPrice: 0,
-    prevCeilPrice: 0,
-    ceilPricePercentChange: 0,
+    ceilPrice: NaN,
+    prevCeilPrice: NaN,
+    ceilPricePercentChange: NaN,
 
-    volume: openseaStats.seven_day_volume,
-    volumePercentChange: 0,
-    prevVolume: openseaStats.seven_day_volume,
+    volume: round(openseaStats.seven_day_volume, 4),
+    volumePercentChange: NaN,
+    prevVolume: NaN,
 
-    numSales: openseaStats.seven_day_sales,
-    prevNumSales: openseaStats.seven_day_sales,
-    numSalesPercentChange: 0,
+    numSales: round(openseaStats.seven_day_sales, 4),
+    prevNumSales: NaN,
+    numSalesPercentChange: NaN,
 
-    avgPrice: openseaStats.seven_day_average_price,
-    prevAvgPrice: openseaStats.seven_day_average_price,
-    avgPricePercentChange: 0,
+    avgPrice: round(openseaStats.seven_day_average_price, 4),
+    prevAvgPrice: NaN,
+    avgPricePercentChange: NaN,
 
-    timestamp: parseStatsDocId(weeklyStatsRef.id).timestamp,
-    period: StatsPeriod.Weekly,
-  }
-  batchHandler.add(
-    weeklyStatsRef,
-    weeklyStats,
-    { merge: true }
-  );
+    timestamp: weeklyTimestamp,
+    period: StatsPeriod.Weekly
+  };
+  batchHandler.add(weeklyStatsRef, weeklyStats, { merge: true });
 
   // --- Monthly ---
   const monthlyStatsRef = getDocRefByTime(updatedAt, StatsPeriod.Monthly, collectionAddress, chainId);
+  const {timestamp: monthlyTimestamp} = parseStatsDocId(monthlyStatsRef.id);
   const monthlyStats: Stats = {
     ...collectionInfo,
-    floorPrice: 0,
-    prevFloorPrice: 0,
-    floorPricePercentChange: 0,
+    floorPrice: NaN,
+    prevFloorPrice: NaN,
+    floorPricePercentChange: NaN,
 
-    ceilPrice: 0,
-    prevCeilPrice: 0,
-    ceilPricePercentChange: 0,
+    ceilPrice: NaN,
+    prevCeilPrice: NaN,
+    ceilPricePercentChange: NaN,
 
-    volume: openseaStats.thirty_day_volume,
-    volumePercentChange: 0,
-    prevVolume: openseaStats.thirty_day_volume,
+    volume: round(openseaStats.thirty_day_volume, 4),
+    volumePercentChange: NaN,
+    prevVolume: NaN,
 
-    numSales: openseaStats.thirty_day_sales,
-    prevNumSales: openseaStats.thirty_day_sales,
-    numSalesPercentChange: 0,
+    numSales: round(openseaStats.thirty_day_sales, 4),
+    prevNumSales: NaN,
+    numSalesPercentChange: NaN,
 
-    avgPrice: openseaStats.thirty_day_average_price,
-    prevAvgPrice: openseaStats.thirty_day_average_price,
-    avgPricePercentChange: 0,
+    avgPrice: round(openseaStats.thirty_day_average_price, 4),
+    prevAvgPrice: NaN,
+    avgPricePercentChange: NaN,
 
-    timestamp: parseStatsDocId(monthlyStatsRef.id).timestamp,
-    period: StatsPeriod.Monthly,
+    timestamp: monthlyTimestamp,
+
+    period: StatsPeriod.Monthly
   };
 
-  batchHandler.add(
-    monthlyStatsRef,
-    monthlyStats,
-    { merge: true }
-  );
+  batchHandler.add(monthlyStatsRef, monthlyStats, { merge: true });
 
   // commit
   await batchHandler.flush();

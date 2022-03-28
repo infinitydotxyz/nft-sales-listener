@@ -8,4 +8,4 @@ const main = (): void => {
   runOpenseaSalesListener();
 };
 
-main();
+void main();

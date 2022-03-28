@@ -203,7 +203,6 @@ const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesL
   return (await ethProvider.getTransaction(txHash)).data;
 };
 
-
 const execute = (): void => {
   /*
     --- Listen Opensea Sales event
@@ -246,7 +245,7 @@ const execute = (): void => {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
         const { sales, totalPrice } = parseSaleOrders(saleOrders);
 
-        await salesUpdater.saveTransaction({sales, totalPrice});
+        await salesUpdater.saveTransaction({ sales, totalPrice });
       }
     } catch (err) {
       logger.error(`Listener:[Opensea] failed to fetch new order: ${txHash}`);
