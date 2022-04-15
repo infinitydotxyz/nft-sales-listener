@@ -65,6 +65,8 @@ export async function writeSalesToFeed(
 
           const nftSaleEvent: NftSaleEvent = {
             type: FeedEventType.NftSale,
+            collectionProfileImage: collection?.metadata?.profileImage ?? '',
+            hasBlueCheck: collection?.hasBlueCheck ?? false,
             buyer: item.buyer,
             seller: item.seller,
             sellerDisplayName: sellerDisplayName,

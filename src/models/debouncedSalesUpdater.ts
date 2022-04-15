@@ -166,6 +166,10 @@ export default class DebouncedSalesUpdater {
     await firebase.db.runTransaction(async (tx) => {
       validTransactions = await this.getUnsavedTransactions(transactions, tx);
 
+      if(validTransactions.length === 0) {
+        throw new Error('No valid transactions');
+      }
+
       const updates: {
         [refPath: string]: {
           ref: FirebaseFirestore.DocumentReference;
@@ -239,7 +243,7 @@ export default class DebouncedSalesUpdater {
               .where('timestamp', '<', docIdTimestamp)
               .orderBy('timestamp', OrderDirection.Descending)
               .limit(1);
-            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, transaction, period);
+            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, sale, period);
           }
         }
       }
@@ -293,7 +297,6 @@ export default class DebouncedSalesUpdater {
             } else {
               aggregatedStats = aggregateStats(prevStats, mergedStats, docToUpdate.ref.id, docToUpdate.period);
             }
-
             /**
              * save collection stats
              * min of 5 per collection
