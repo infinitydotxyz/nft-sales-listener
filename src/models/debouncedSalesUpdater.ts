@@ -1,4 +1,5 @@
-import { firestoreConstants, getStatsDocInfo, parseStatsDocId, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
+import { getStatsDocInfo, parseStatsDocId } from 'utils/stats';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
 import { firebase, logger } from 'container';
 import { aggregateAllTimeStats, aggregateStats, getNewStats, getPrevStats } from './stats.model';

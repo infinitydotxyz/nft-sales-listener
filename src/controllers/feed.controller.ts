@@ -91,7 +91,9 @@ export async function writeSalesToFeed(
               collectionAddress: item.collectionAddress,
               tokenId: item.tokenId
             }),
-            externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
+            externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash }),
+            collectionProfileImage: '',
+            hasBlueCheck: false
           };
           return nftSaleEvent;
         })

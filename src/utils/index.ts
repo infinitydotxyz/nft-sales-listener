@@ -2,9 +2,9 @@ import { ethers } from 'ethers';
 import { firebase } from 'container';
 import {
   firestoreConstants,
-  getCollectionDocId,
-  getStatsDocInfo,
+  getCollectionDocId
 } from '@infinityxyz/lib/utils';
+import { getStatsDocInfo } from 'utils/stats';
 import { NftSale } from '@infinityxyz/lib/types/core/NftSale';
 import { Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
