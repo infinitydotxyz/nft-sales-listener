@@ -167,7 +167,7 @@ export default class DebouncedSalesUpdater {
     await firebase.db.runTransaction(async (tx) => {
       validTransactions = await this.getUnsavedTransactions(transactions, tx);
 
-      if(validTransactions.length === 0) {
+      if (validTransactions.length === 0) {
         throw new Error('No valid transactions');
       }
 
@@ -185,9 +185,9 @@ export default class DebouncedSalesUpdater {
 
       const getPrevDocId = (currentDocId: string, period: StatsPeriod) => {
         const ONE_MIN = 60 * 1000;
-        const { timestamp: currentDocIdTimestamp, period : parsedPeriod } = parseStatsDocId(currentDocId);
+        const { timestamp: currentDocIdTimestamp, period: parsedPeriod } = parseStatsDocId(currentDocId);
         assert(period === parsedPeriod, 'invalid period');
-        const onePeriodAgoTimestamp = currentDocIdTimestamp - ONE_MIN; 
+        const onePeriodAgoTimestamp = currentDocIdTimestamp - ONE_MIN;
         const { docId: onePeriodAgoDocId } = getStatsDocInfo(onePeriodAgoTimestamp, period);
         return onePeriodAgoDocId;
       };
@@ -213,7 +213,6 @@ export default class DebouncedSalesUpdater {
         };
       };
 
-
       /**
        * add transactions to each interval
        */
@@ -225,8 +224,8 @@ export default class DebouncedSalesUpdater {
            * collection level
            */
           const collectionDocRef = getDocRefByTime(time, period, collectionAddress, chainId);
-          const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
-          
+          const { timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id);
+
           const prevMostRecentStatsQuery = collectionDocRef.parent
             .where('timestamp', '<', docIdTimestamp)
             .orderBy('timestamp', OrderDirection.Descending)
@@ -238,7 +237,7 @@ export default class DebouncedSalesUpdater {
            */
           for (const sale of transaction.sales) {
             const tokenDocRef = getDocRefByTime(time, period, collectionAddress, chainId, sale.tokenId);
-            const {timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id );
+            const { timestamp: docIdTimestamp } = parseStatsDocId(collectionDocRef.id);
 
             const prevMostRecentStatsQuery = tokenDocRef.parent
               .where('timestamp', '<', docIdTimestamp)
@@ -267,9 +266,17 @@ export default class DebouncedSalesUpdater {
       let addedToQueue = false;
       for (const docToUpdate of Object.values(updates)) {
         const existingStats = (await docToUpdate.currentSnapshot).data() as Stats | undefined; // promise has already resolved
-        const prevMostRecentDoc =  (await docToUpdate.prevMostRecentSnapshot)?.docs?.[0];
+        const prevMostRecentDoc = (await docToUpdate.prevMostRecentSnapshot)?.docs?.[0];
         const prevMostRecentStats = prevMostRecentDoc?.data?.() as Stats | undefined;
-        const prevStats: Stats | undefined = prevMostRecentStats ? getPrevStats(prevMostRecentStats, prevMostRecentDoc.id, docToUpdate.onePeriodAgoDocId, docToUpdate.twoPeriodsAgoDocId, docToUpdate.period) : undefined; 
+        const prevStats: Stats | undefined = prevMostRecentStats
+          ? getPrevStats(
+              prevMostRecentStats,
+              prevMostRecentDoc.id,
+              docToUpdate.onePeriodAgoDocId,
+              docToUpdate.twoPeriodsAgoDocId,
+              docToUpdate.period
+            )
+          : undefined;
 
         const sample = docToUpdate.dataToAggregate[0];
 
@@ -355,7 +362,10 @@ export default class DebouncedSalesUpdater {
   /**
    * filters transactions by those that don't yet exist in the db
    */
-  private async getUnsavedTransactions(transactions: TransactionType[], txn: FirebaseFirestore.Transaction): Promise<TransactionType[]> {
+  private async getUnsavedTransactions(
+    transactions: TransactionType[],
+    txn: FirebaseFirestore.Transaction
+  ): Promise<TransactionType[]> {
     const promises: { promise: Promise<boolean>; transaction: TransactionType }[] = [];
     for (const transaction of transactions) {
       const txHash = transaction.sales[0].txHash;
