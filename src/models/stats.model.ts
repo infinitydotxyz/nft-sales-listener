@@ -48,7 +48,7 @@ const calcPercentChange = (prev = NaN, current: number) => {
   const decimal = change / Math.abs(prev);
   const percent = decimal * 100;
 
-  if (Number.isNaN(percent)) {
+  if (Number.isNaN(percent) || !Number.isFinite(percent)) {
     return 0;
   }
 

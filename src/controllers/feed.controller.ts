@@ -65,6 +65,8 @@ export async function writeSalesToFeed(
 
           const nftSaleEvent: NftSaleEvent = {
             type: FeedEventType.NftSale,
+            collectionProfileImage: collection?.metadata?.profileImage ?? '',
+            hasBlueCheck: collection?.hasBlueCheck ?? false,
             buyer: item.buyer,
             seller: item.seller,
             sellerDisplayName: sellerDisplayName,
@@ -91,9 +93,7 @@ export async function writeSalesToFeed(
               collectionAddress: item.collectionAddress,
               tokenId: item.tokenId
             }),
-            externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash }),
-            collectionProfileImage: '',
-            hasBlueCheck: false
+            externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
           };
           return nftSaleEvent;
         })
