@@ -239,7 +239,7 @@ export default class DebouncedSalesUpdater {
               .where('timestamp', '<', docIdTimestamp)
               .orderBy('timestamp', OrderDirection.Descending)
               .limit(1);
-            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, transaction, period);
+            addToUpdates(tokenDocRef, prevMostRecentStatsQuery, sale, period);
           }
         }
       }
