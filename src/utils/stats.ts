@@ -1,3 +1,5 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
 import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
@@ -49,15 +51,15 @@ function getFormattedStatsDate(timestamp: number, period: StatsPeriod): string {
 
   switch (period) {
     case StatsPeriod.Hourly:
-      return format(date, 'YYYY-MM-DD-HH');
+      return format(date, 'yyyy-MM-dd-HH') as string;
     case StatsPeriod.Daily:
-      return format(date, 'YYYY-MM-DD');
+      return format(date, 'yyyy-MM-dd') as string;
     case StatsPeriod.Weekly:
-      return format(date.setDate(firstDayOfWeek), 'YYYY-MM-DD');
+      return format(date.setDate(firstDayOfWeek), 'yyyy-MM-dd') as string;
     case StatsPeriod.Monthly:
-      return format(date, 'YYYY-MM');
+      return format(date, 'yyyy-MM') as string;
     case StatsPeriod.Yearly:
-      return format(date, 'YYYY');
+      return format(date, 'yyyy') as string;
     case StatsPeriod.All:
       return '';
     default:
