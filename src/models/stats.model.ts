@@ -3,7 +3,8 @@ import { CollectionStats } from '../services/OpenSea';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { Stats, AllTimeStats, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { PreAggregationStats } from 'types/PreAggregationStats';
-import { ALL_TIME_STATS_TIMESTAMP, parseStatsDocId } from '@infinityxyz/lib/utils';
+import { ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
+import { parseStatsDocId } from 'utils/stats';
 
 const round = (value: number, decimals: number) => {
   const decimalsFactor = Math.pow(10, decimals);
