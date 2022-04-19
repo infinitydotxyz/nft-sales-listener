@@ -17,6 +17,7 @@
     "start": "npx cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
     "dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/index.ts",
     "deploy:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
+    "deploy:prod":"npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "update:lib": "npm update @infinityxyz/lib"
   },
   "devDependencies": {
