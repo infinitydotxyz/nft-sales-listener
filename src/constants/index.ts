@@ -1,12 +1,5 @@
 export * from './wyvern-constants';
 
-export const COLLECTION_STATS_COLL = 'collectionStats';
-export const DBN_ALL_TIME = 'all-time';
-export const NFT_STATS_COLL = 'nftStats';
-export const DBN_HISTORY = 'history';
-export const SALES_COLL = 'sales';
-export const NFTS_COLL = 'nfts';
-
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
 export const FB_STORAGE_BUCKET = 'infinity-static';

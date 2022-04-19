@@ -10,10 +10,10 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { firebase, providers } from 'container';
-import { Transaction } from 'models/debouncedSalesUpdater';
+import { TransactionType } from 'types/Transaction';
 
 export async function writeSalesToFeed(
-  { sales }: Transaction,
+  { sales }: TransactionType,
   collections: { [address: string]: Partial<Collection> }
 ) {
   try {
@@ -42,7 +42,8 @@ export async function writeSalesToFeed(
       const buyer = sales[0].buyer;
       const seller = sales[0].seller;
       const [buyerDisplayName, sellerDisplayName] = await Promise.all(
-        [buyer, seller].map((item) => getUserDisplayName(item, chainId, provider))
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        [buyer, seller].map((item) => getUserDisplayName(item, chainId, provider as any))
       );
 
       const events = sales
@@ -64,6 +65,8 @@ export async function writeSalesToFeed(
 
           const nftSaleEvent: NftSaleEvent = {
             type: FeedEventType.NftSale,
+            collectionProfileImage: collection?.metadata?.profileImage ?? '',
+            hasBlueCheck: collection?.hasBlueCheck ?? false,
             buyer: item.buyer,
             seller: item.seller,
             sellerDisplayName: sellerDisplayName,
