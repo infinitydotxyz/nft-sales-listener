@@ -18,7 +18,7 @@
     "dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/index.ts",
     "deploy:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
     "deploy:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
-    "update:lib": "npm update @infinityxyz/lib"
+    "update:lib": "npm install @infinityxyz/lib@latest"
   },
   "devDependencies": {
     "@types/node": "^17.0.14",
@@ -34,7 +34,7 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.1.2",
+    "@infinityxyz/lib": "^1.45.0",
     "axios": "^0.26.1",
     "chalk": "^4.1.2",
     "date-fns": "^2.28.0",
