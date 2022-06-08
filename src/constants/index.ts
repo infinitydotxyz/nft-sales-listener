@@ -2,10 +2,6 @@ export * from './wyvern-constants';
 
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
-/**
- *  TODO change these in prod
- * -----------------------------
- */
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
 export const COLLECTION_INDEXING_SERVICE_URL =
