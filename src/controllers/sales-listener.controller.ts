@@ -7,8 +7,8 @@ import { PreParsedNftSale } from '../types/index';
 import { logger } from '../container';
 import { sleep } from '@infinityxyz/lib/utils';
 import { parseSaleOrders } from './sales-parser.controller';
-import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
 import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();

@@ -1,14 +1,14 @@
-import { Collection, EtherscanLinkType, InfinityLinkType } from '@infinityxyz/lib/types/core';
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { ChainId, Collection, EtherscanLinkType, InfinityLinkType } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { Token } from '@infinityxyz/lib/types/core/Token';
-import {
-  firestoreConstants,
-  getCollectionDocId,
-  getEtherscanLink,
-  getInfinityLink,
-  getUserDisplayName,
-  trimLowerCase
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
+import { getEtherscanLink } from '@infinityxyz/lib/utils/etherscan';
+import { getCollectionDocId } from '@infinityxyz/lib/utils/firestore';
+import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
+import { getInfinityLink } from '@infinityxyz/lib/utils/links';
+import { getUserDisplayName } from '@infinityxyz/lib/utils/user';
 import { firebase, providers } from 'container';
 import { TransactionType } from 'types/Transaction';
 
@@ -55,7 +55,7 @@ export async function writeSalesToFeed(
           const collectionSlug = collection?.slug;
           const collectionName = collection?.metadata?.name;
 
-          const nftName = nft?.metadata?.name ?? nft?.tokenId ?? '';
+          const nftName = (nft?.metadata as any)?.name ?? nft?.tokenId ?? '';
           const nftSlug = nft?.slug ?? '';
           const image = nft?.image?.url ?? '';
 
@@ -64,6 +64,7 @@ export async function writeSalesToFeed(
           }
 
           const nftSaleEvent: NftSaleEvent = {
+            usersInvolved: [item.buyer, item.seller],
             type: FeedEventType.NftSale,
             collectionProfileImage: collection?.metadata?.profileImage ?? '',
             hasBlueCheck: collection?.hasBlueCheck ?? false,
@@ -91,7 +92,8 @@ export async function writeSalesToFeed(
             internalUrl: getInfinityLink({
               type: InfinityLinkType.Asset,
               collectionAddress: item.collectionAddress,
-              tokenId: item.tokenId
+              tokenId: item.tokenId,
+              chainId: item.chainId as ChainId,
             }),
             externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
           };
