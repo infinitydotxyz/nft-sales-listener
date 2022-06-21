@@ -1,6 +1,6 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Collection, EtherscanLinkType, InfinityLinkType } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, EtherscanLinkType, InfinityLinkType } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { Token } from '@infinityxyz/lib/types/core/Token';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
@@ -92,7 +92,8 @@ export async function writeSalesToFeed(
             internalUrl: getInfinityLink({
               type: InfinityLinkType.Asset,
               collectionAddress: item.collectionAddress,
-              tokenId: item.tokenId
+              tokenId: item.tokenId,
+              chainId: item.chainId as ChainId,
             }),
             externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
           };
