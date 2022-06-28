@@ -57,7 +57,12 @@ export async function writeSalesToFeed(
 
           const nftName = (nft?.metadata as any)?.name ?? nft?.tokenId ?? '';
           const nftSlug = nft?.slug ?? '';
-          const image = nft?.image?.url ?? '';
+          const image =
+            nft?.image?.url ??
+            nft?.alchemyCachedImage ??
+            nft?.zoraImage?.mediaEncoding.preview ??
+            nft?.image?.originalUrl ??
+            '';
 
           if (!collectionSlug || !collectionName || !nftName || !image) {
             return;
