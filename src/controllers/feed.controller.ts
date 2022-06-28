@@ -64,7 +64,7 @@ export async function writeSalesToFeed(
             nft?.alchemyCachedImage ??
             nft?.zoraImage?.mediaEncoding.thumbnail ??
             nft?.image?.originalUrl ??
-            collection.metadata?.profileImage ??
+            collection?.metadata?.profileImage ??
             '';
 
           if (!collectionSlug || !collectionName || !nftName || !image) {
