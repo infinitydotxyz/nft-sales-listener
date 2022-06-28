@@ -11,6 +11,7 @@ import { getInfinityLink } from '@infinityxyz/lib/utils/links';
 import { getUserDisplayName } from '@infinityxyz/lib/utils/user';
 import { firebase, providers } from 'container';
 import { TransactionType } from 'types/Transaction';
+import { logger } from '../container';
 
 export async function writeSalesToFeed(
   { sales }: TransactionType,
@@ -55,11 +56,25 @@ export async function writeSalesToFeed(
           const collectionSlug = collection?.slug;
           const collectionName = collection?.metadata?.name;
 
-          const nftName = (nft?.metadata as any)?.name ?? nft?.tokenId ?? '';
-          const nftSlug = nft?.slug ?? '';
-          const image = nft?.image?.url ?? '';
+          const nftName = (nft?.metadata as any)?.name ?? nft?.tokenId ?? item.tokenId;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const nftSlug = nft?.slug ?? trimLowerCase(nftName);
+          const image =
+            nft?.image?.url ??
+            nft?.alchemyCachedImage ??
+            nft?.zoraImage?.mediaEncoding.thumbnail ??
+            nft?.image?.originalUrl ??
+            collection.metadata?.profileImage ??
+            '';
 
           if (!collectionSlug || !collectionName || !nftName || !image) {
+            logger.log(
+              'Not writing sale to feed as some data is empty',
+              collectionSlug,
+              collectionName,
+              nftName,
+              image
+            );
             return;
           }
 
@@ -93,7 +108,7 @@ export async function writeSalesToFeed(
               type: InfinityLinkType.Asset,
               collectionAddress: item.collectionAddress,
               tokenId: item.tokenId,
-              chainId: item.chainId as ChainId,
+              chainId: item.chainId as ChainId
             }),
             externalUrl: getEtherscanLink({ type: EtherscanLinkType.Transaction, transactionHash: item.txHash })
           };
