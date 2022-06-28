@@ -58,7 +58,7 @@ export async function writeSalesToFeed(
 
           const nftName = (nft?.metadata as any)?.name ?? nft?.tokenId ?? item.tokenId;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          const nftSlug = nft?.slug ?? trimLowerCase(nftName);
+          const nftSlug = nft?.slug ?? trimLowerCase(nftName) ?? '';
           const image =
             nft?.image?.url ??
             nft?.alchemyCachedImage ??
