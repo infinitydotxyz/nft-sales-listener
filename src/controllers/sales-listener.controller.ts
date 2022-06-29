@@ -145,7 +145,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(
+function handleAtomicMatch(
   inputs: DecodedAtomicMatchInputs,
   txHash: string,
   block: Block
@@ -240,7 +240,7 @@ const execute = (): void => {
         'atomicMatch_',
         response as ethers.utils.BytesLike
       ) as any;
-      const saleOrders = handleAtomicMatch_(decodedResponse, txHash, block);
+      const saleOrders = handleAtomicMatch(decodedResponse, txHash, block);
       if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
         logger.log(`Listener:[Opensea] fetched new order successfully: ${txHash}`);
         const { sales, totalPrice } = parseSaleOrders(saleOrders);
