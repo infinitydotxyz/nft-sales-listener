@@ -14,3 +14,17 @@ export interface PreParsedNftSale {
   source: SaleSource;
   tokenStandard: TokenStandard;
 }
+
+export interface SeaportSoldNft {
+  tokenAddress: string;
+  tokenId: string;
+  seller: string;
+  buyer: string;
+}
+
+export interface SeaportReceivedAmount {
+  tokenAddress: string;
+  amount: string;
+  seller: string;
+  buyer: string;
+}

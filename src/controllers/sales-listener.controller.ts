@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Block } from '@ethersproject/abstract-provider';
 import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
-import { ETHEREUM_WETH_ADDRESS, sleep } from '@infinityxyz/lib/utils';
+import { ETHEREUM_WETH_ADDRESS, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
 import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
 import SeaportABI from '../abi/seaport.json';
@@ -17,7 +17,7 @@ import {
 } from '../constants';
 import { logger } from '../container';
 import Providers from '../models/Providers';
-import { PreParsedNftSale } from '../types/index';
+import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
 import { parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
@@ -227,8 +227,8 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
   const spentItems = eventData[4];
   const receivedItems = eventData[5];
 
-  const soldNfts: any[] = [];
-  const amounts: any[] = [];
+  const soldNfts: SeaportSoldNft[] = [];
+  const amounts: SeaportReceivedAmount[] = [];
 
   for (const spentItem of spentItems) {
     const itemType = spentItem[0];
@@ -239,19 +239,19 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
     // only ERC721 items are supported
     if (itemType === 2 || itemType === 4) {
       soldNfts.push({
-        address: token,
-        tokenId: identifier,
-        seller: offerer,
-        buyer: fulfiller
+        tokenAddress: trimLowerCase(String(token)),
+        tokenId: String(identifier),
+        seller: trimLowerCase(String(offerer)),
+        buyer: trimLowerCase(String(fulfiller))
       });
     } else if (itemType === 0 || itemType === 1) {
       // only ETH and WETH
       if (String(token).toLowerCase() === NULL_ADDRESS || String(token).toLowerCase() === ETHEREUM_WETH_ADDRESS) {
         amounts.push({
-          address: token,
-          amount: amount,
-          seller: fulfiller,
-          buyer: offerer
+          tokenAddress: trimLowerCase(String(token)),
+          amount: String(amount),
+          seller: trimLowerCase(String(fulfiller)),
+          buyer: trimLowerCase(String(offerer))
         });
       }
     }
@@ -266,19 +266,19 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
     // only ERC721 items are supported
     if (itemType === 2 || itemType === 4) {
       soldNfts.push({
-        address: token,
-        tokenId: identifier,
-        seller: fulfiller,
-        buyer: offerer
+        tokenAddress: trimLowerCase(String(token)),
+        tokenId: String(identifier),
+        seller: trimLowerCase(String(fulfiller)),
+        buyer: trimLowerCase(String(offerer))
       });
     } else if (itemType === 0 || itemType === 1) {
       // only ETH and WETH
       if (String(token).toLowerCase() === NULL_ADDRESS || String(token).toLowerCase() === ETHEREUM_WETH_ADDRESS) {
         amounts.push({
-          address: token,
-          amount: amount,
-          seller: offerer,
-          buyer: fulfiller
+          tokenAddress: trimLowerCase(String(token)),
+          amount: String(amount),
+          seller: trimLowerCase(String(offerer)),
+          buyer: trimLowerCase(String(fulfiller))
         });
       }
     }
@@ -286,7 +286,7 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
 
   let totalAmount = BigNumber.from(0);
   for (const amount of amounts) {
-    totalAmount = totalAmount.add(String(amount.amount));
+    totalAmount = totalAmount.add(amount.amount);
   }
 
   const txHash = event.transactionHash;
@@ -315,8 +315,8 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
         ...res,
         seller: nft.seller,
         buyer: nft.buyer,
-        collectionAddress: nft.address,
-        tokenId: nft.identifier
+        collectionAddress: nft.tokenAddress,
+        tokenId: nft.tokenId
       };
       saleOrders.push(saleOrder);
     }
@@ -324,7 +324,6 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
     if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
       logger.log(`Listener:[Seaport] fetched new order successfully: ${txHash}`);
       const { sales, totalPrice } = parseSaleOrders(saleOrders);
-      logger.log(JSON.stringify(sales, null, 2));
       await salesUpdater.saveTransaction({ sales, totalPrice });
     }
   } catch (err) {
