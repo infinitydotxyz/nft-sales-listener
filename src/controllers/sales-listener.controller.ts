@@ -1,14 +1,24 @@
-import { ethers } from 'ethers';
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Block } from '@ethersproject/abstract-provider';
-import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
-import WyvernExchangeABI from '../abi/wyvernExchange.json';
-import Providers from '../models/Providers';
-import { PreParsedNftSale } from '../types/index';
-import { logger } from '../container';
-import { sleep } from '@infinityxyz/lib/utils';
-import { parseSaleOrders } from './sales-parser.controller';
 import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ETHEREUM_WETH_ADDRESS, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
+import { BigNumber, ethers } from 'ethers';
 import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
+import SeaportABI from '../abi/seaport.json';
+import WyvernExchangeABI from '../abi/wyvernExchange.json';
+import {
+  MERKLE_VALIDATOR_ADDRESS,
+  NULL_ADDRESS,
+  SEAPORT_ADDRESS,
+  WYVERN_ATOMICIZER_ADDRESS,
+  WYVERN_EXCHANGE_ADDRESS
+} from '../constants';
+import { logger } from '../container';
+import Providers from '../models/Providers';
+import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
+import { parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
 const providers = new Providers();
@@ -140,8 +150,7 @@ function handleSingleSale(inputs: DecodedAtomicMatchInputs): TokenInfo {
 }
 
 /**
- *
- * @param call The AtomicMatch call that triggered this call handler.
+ * The AtomicMatch call that triggered this call handler.
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
@@ -203,14 +212,136 @@ const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesL
   return (await ethProvider.getTransaction(txHash)).data;
 };
 
+async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: ethers.Event[]): Promise<void> {
+  if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+    return;
+  }
+  const event: ethers.Event = args[args.length - 1];
+  const eventData = event.args;
+  if (eventData?.length !== 6) {
+    return;
+  }
+  // see commented reference below for payload structure
+  const offerer = eventData[1];
+  const fulfiller = eventData[3];
+  const spentItems = eventData[4];
+  const receivedItems = eventData[5];
+
+  const soldNfts: SeaportSoldNft[] = [];
+  const amounts: SeaportReceivedAmount[] = [];
+
+  for (const spentItem of spentItems) {
+    const itemType = spentItem[0];
+    const token = spentItem[1];
+    const identifier = BigNumber.from(spentItem[2]).toString();
+    const amount = BigNumber.from(spentItem[3]).toString();
+
+    // only ERC721 items are supported
+    if (itemType === 2 || itemType === 4) {
+      soldNfts.push({
+        tokenAddress: trimLowerCase(String(token)),
+        tokenId: String(identifier),
+        seller: trimLowerCase(String(offerer)),
+        buyer: trimLowerCase(String(fulfiller))
+      });
+    } else if (itemType === 0 || itemType === 1) {
+      // only ETH and WETH
+      if (String(token).toLowerCase() === NULL_ADDRESS || String(token).toLowerCase() === ETHEREUM_WETH_ADDRESS) {
+        amounts.push({
+          tokenAddress: trimLowerCase(String(token)),
+          amount: String(amount),
+          seller: trimLowerCase(String(fulfiller)),
+          buyer: trimLowerCase(String(offerer))
+        });
+      }
+    }
+  }
+
+  for (const receivedItem of receivedItems) {
+    const itemType = receivedItem[0];
+    const token = receivedItem[1];
+    const identifier = BigNumber.from(receivedItem[2]).toString();
+    const amount = BigNumber.from(receivedItem[3]).toString();
+
+    // only ERC721 items are supported
+    if (itemType === 2 || itemType === 4) {
+      soldNfts.push({
+        tokenAddress: trimLowerCase(String(token)),
+        tokenId: String(identifier),
+        seller: trimLowerCase(String(fulfiller)),
+        buyer: trimLowerCase(String(offerer))
+      });
+    } else if (itemType === 0 || itemType === 1) {
+      // only ETH and WETH
+      if (String(token).toLowerCase() === NULL_ADDRESS || String(token).toLowerCase() === ETHEREUM_WETH_ADDRESS) {
+        amounts.push({
+          tokenAddress: trimLowerCase(String(token)),
+          amount: String(amount),
+          seller: trimLowerCase(String(offerer)),
+          buyer: trimLowerCase(String(fulfiller))
+        });
+      }
+    }
+  }
+
+  let totalAmount = BigNumber.from(0);
+  for (const amount of amounts) {
+    totalAmount = totalAmount.add(amount.amount);
+  }
+
+  const txHash = event.transactionHash;
+
+  try {
+    const block: Block = await event.getBlock();
+    const res: PreParsedNftSale = {
+      chainId: ETH_CHAIN_ID,
+      txHash,
+      blockNumber: block.number,
+      timestamp: block.timestamp * 1000,
+      price: totalAmount.toBigInt(),
+      paymentToken: NULL_ADDRESS,
+      quantity: 1,
+      source: SaleSource.Seaport,
+      tokenStandard: TokenStandard.ERC721,
+      seller: '',
+      buyer: '',
+      collectionAddress: '',
+      tokenId: ''
+    };
+
+    const saleOrders: PreParsedNftSale[] = [];
+    for (const nft of soldNfts) {
+      const saleOrder: PreParsedNftSale = {
+        ...res,
+        seller: nft.seller,
+        buyer: nft.buyer,
+        collectionAddress: nft.tokenAddress,
+        tokenId: nft.tokenId
+      };
+      saleOrders.push(saleOrder);
+    }
+
+    if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
+      logger.log(`Listener:[Seaport] fetched new order successfully: ${txHash}`);
+      const { sales, totalPrice } = parseSaleOrders(saleOrders);
+      await salesUpdater.saveTransaction({ sales, totalPrice });
+    }
+  } catch (err) {
+    logger.error(`Listener:[Seaport] failed to fetch new order: ${txHash}`);
+  }
+}
+
 const execute = (): void => {
-  /*
-    --- Listen Opensea Sales event
-  */
   const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
   const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
+  const SeaportContract = new ethers.Contract(SEAPORT_ADDRESS, SeaportABI, ethProvider);
+
   const salesUpdater = new DebouncedSalesUpdater();
+
+  SeaportContract.on('OrderFulfilled', async (...args: ethers.Event[]) => {
+    await handleSeaportEvent(salesUpdater, args);
+  });
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
@@ -254,3 +385,122 @@ const execute = (): void => {
 };
 
 export { execute };
+
+// ======================================================== EVENTS FORMAT REFERENCE ========================================================
+
+// ============================================================= SEAPORT ===================================================================
+
+  /* 
+    Event format: event.args array contains the following items:
+    event OrderFulfilled(
+      bytes32 orderHash,
+      address indexed offerer,
+      address indexed zone,
+      address fulfiller,
+      SpentItem[] offer,
+      ReceivedItem[] consideration
+    );
+
+    struct SpentItem {
+      ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+    }
+
+    struct ReceivedItem {
+      ItemType itemType;
+      address token;
+      uint256 identifier;
+      uint256 amount;
+      address payable recipient;
+    }
+
+    enum ItemType {
+      // 0: ETH on mainnet, MATIC on polygon, etc.
+      NATIVE,
+      // 1: ERC20 items (ERC777 and ERC20 analogues could also technically work)
+      ERC20,
+      // 2: ERC721 items
+      ERC721,
+      // 3: ERC1155 items
+      ERC1155,
+      // 4: ERC721 items where a number of tokenIds are supported
+      ERC721_WITH_CRITERIA,
+      // 5: ERC1155 items where a number of ids are supported
+      ERC1155_WITH_CRITERIA
+    }
+
+    Example output from console.log
+    const eventData = event.args;
+    if (eventData?.length !== 6) {
+      return;
+    }
+    const offerer = eventData[1];
+    const fulfiller = eventData[3];
+    const spentItems = eventData[4];
+    const receivedItems = eventData[5];
+    logger.log(`Offerer: ${String(offerer)}`);
+    logger.log(`Fulfiller: ${String(fulfiller)}`);
+    logger.log(`Spent items: ${JSON.stringify(spentItems, null, 2)}`);
+    logger.log(`Received items: ${JSON.stringify(receivedItems, null, 2)}`);
+
+      Offerer: 0x040FC4f814321242c4E19114cFD7493BEbB3B121
+      Fulfiller: 0xaC418208F535cf01aAC96A5A1877E1B5bacF861f
+      Spent items: [
+        [
+          2,
+          "0x64775Ea96CB4dD8Ef31E3d634af398c66543fbd7",
+          {
+            "type": "BigNumber",
+            "hex": "0x0913"
+          },
+          {
+            "type": "BigNumber",
+            "hex": "0x01"
+          }
+        ]
+      ]
+      Received items: [
+         [
+          0,
+          "0x0000000000000000000000000000000000000000",
+          {
+            "type": "BigNumber",
+            "hex": "0x00"
+          },
+          {
+            "type": "BigNumber",
+            "hex": "0x01a2704935a54000"
+          },
+          "0x040FC4f814321242c4E19114cFD7493BEbB3B121"
+        ],
+        [
+          0,
+          "0x0000000000000000000000000000000000000000",
+          {
+            "type": "BigNumber",
+            "hex": "0x00"
+          },
+          {
+            "type": "BigNumber",
+            "hex": "0x0b8bdb97852000"
+          },
+          "0x8De9C5A032463C561423387a9648c5C7BCC5BC90"
+        ],
+        [
+          0,
+          "0x0000000000000000000000000000000000000000",
+          {
+            "type": "BigNumber",
+            "hex": "0x00"
+          },
+          {
+            "type": "BigNumber",
+            "hex": "0x1fde2adfa2a000"
+          },
+          "0x198702ca197C42e1A61Ff4d21A26BBf6b3B4Fa95"
+        ]
+      ]
+
+    */
