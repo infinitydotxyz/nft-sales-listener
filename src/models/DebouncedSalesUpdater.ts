@@ -254,13 +254,6 @@ export default class DebouncedSalesUpdater {
       await Promise.all(Object.values(updates).flatMap((item) => [item.currentSnapshot, item.prevMostRecentSnapshot]));
 
       /**
-       * save sales for all valid transactions
-       */
-      for (const transaction of validTransactions) {
-        this.writeSales(transaction.sales, tx); // one write per sale
-      }
-
-      /**
        * aggregate stats and save to db
        */
       let addedToQueue = false;
@@ -392,17 +385,6 @@ export default class DebouncedSalesUpdater {
       .limit(1);
     const data = await txn.get(query);
     return !data.empty;
-  }
-
-  /**
-   * save individual sales to the db
-   */
-  private writeSales(sales: NftSale[], tx: FirebaseFirestore.Transaction) {
-    const salesCollectionRef = firebase.db.collection(firestoreConstants.SALES_COLL);
-    for (const sale of sales) {
-      const docRef = salesCollectionRef.doc();
-      tx.create(docRef, sale);
-    }
   }
 
   /**
