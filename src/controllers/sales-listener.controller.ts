@@ -3,10 +3,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Block } from '@ethersproject/abstract-provider';
 import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
-import { ETHEREUM_WETH_ADDRESS, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
+import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS, ETHEREUM_WETH_ADDRESS, jsonString, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
 import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
 import SeaportABI from '../abi/seaport.json';
+import InfinityABI from '../abi/infinityExchange.json';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import {
   MERKLE_VALIDATOR_ADDRESS,
@@ -17,12 +18,21 @@ import {
 } from '../constants';
 import { logger } from '../container';
 import Providers from '../models/Providers';
-import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
+import { PreParsedInfinityMatchNftSale, PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
 import { parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
+const GOERLI_CHAIN_ID = '5';
 const providers = new Providers();
 const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
+const goerliProvider = providers.getProviderByChainId(GOERLI_CHAIN_ID);
+
+const SeaportContract = new ethers.Contract(SEAPORT_ADDRESS, SeaportABI, ethProvider);
+const InfinityContract = new ethers.Contract(ETHEREUM_INFINITY_EXCHANGE_ADDRESS, InfinityABI, ethProvider);
+const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
+const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
+
+const salesUpdater = new DebouncedSalesUpdater();
 
 type DecodedAtomicMatchInputs = {
   calldataBuy: string;
@@ -331,13 +341,77 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
   }
 }
 
+async function handleInfinityMatchEvent(salesUpdater: DebouncedSalesUpdater, args: ethers.Event[]): Promise<void> {
+  if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+    return;
+  }
+  const event: ethers.Event = args[args.length - 1];
+  const eventData = event.args;
+  if (eventData?.length !== 6) {
+    return;
+  }
+  // see commented reference below for payload structure
+  const sellOrderHash = eventData[0];
+  const buyOrderHash = eventData[1];
+  const seller = trimLowerCase(String(eventData[2]));
+  const buyer = trimLowerCase(String(eventData[3]));
+  const complication = trimLowerCase(String(eventData[4]));
+  const currency = trimLowerCase(String(eventData[5]));
+  const amount = BigNumber.from(eventData[6]);
+
+  const txHash = event.transactionHash;
+
+  try {
+    const block: Block = await event.getBlock();
+    const res: PreParsedInfinityMatchNftSale = {
+      chainId: ETH_CHAIN_ID,
+      txHash,
+      blockNumber: block.number,
+      timestamp: block.timestamp * 1000,
+      sellOrderHash,
+      buyOrderHash,
+      price: amount.toBigInt(),
+      complication,
+      paymentToken: currency,
+      quantity: 1,
+      source: SaleSource.Infinity,
+      tokenStandard: TokenStandard.ERC721,
+      seller,
+      buyer,
+      collectionAddress: '',
+      tokenId: ''
+    };
+
+    const saleOrders: PreParsedNftSale[] = [];
+    // for (const nft of soldNfts) {
+    //   const saleOrder: PreParsedNftSale = {
+    //     ...res,
+    //     seller: nft.seller,
+    //     buyer: nft.buyer,
+    //     collectionAddress: nft.tokenAddress,
+    //     tokenId: nft.tokenId
+    //   };
+    //   saleOrders.push(saleOrder);
+    // }
+
+    if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
+      logger.log(`Listener:[Seaport] fetched new order successfully: ${txHash}`);
+      const { sales, totalPrice } = parseSaleOrders(saleOrders);
+      await salesUpdater.saveTransaction({ sales, totalPrice });
+    }
+  } catch (err) {
+    logger.error(`Listener:[Seaport] failed to fetch new order: ${txHash}`);
+  }
+}
+
 const execute = (): void => {
-  const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
-  const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
+  InfinityContract.on('MatchOrderFulfilled', async (...args: ethers.Event[]) => {
+    await handleInfinityMatchEvent(salesUpdater, args);
+  });
 
-  const SeaportContract = new ethers.Contract(SEAPORT_ADDRESS, SeaportABI, ethProvider);
-
-  const salesUpdater = new DebouncedSalesUpdater();
+  // InfinityContract.on('TakeOrderFulfilled', async (...args: ethers.Event[]) => {
+  //   await handleInfinityTakeEvent(salesUpdater, args);
+  // });
 
   SeaportContract.on('OrderFulfilled', async (...args: ethers.Event[]) => {
     await handleSeaportEvent(salesUpdater, args);
@@ -387,6 +461,43 @@ const execute = (): void => {
 export { execute };
 
 // ======================================================== EVENTS FORMAT REFERENCE ========================================================
+
+// ======================================================== INFINITY ========================================================
+
+/*
+
+  event MatchOrderFulfilled(
+    bytes32 sellOrderHash,
+    bytes32 buyOrderHash,
+    address indexed seller,
+    address indexed buyer,
+    address complication, // address of the complication that defines the execution
+    address indexed currency, // token address of the transacting currency
+    uint256 amount, // amount spent on the order
+    OrderTypes.OrderItem[] nfts // items in order
+  );
+
+  event TakeOrderFulfilled(
+    bytes32 orderHash,
+    address indexed seller,
+    address indexed buyer,
+    address complication, // address of the complication that defines the execution
+    address indexed currency, // token address of the transacting currency
+    uint256 amount, // amount spent on the order
+    OrderTypes.OrderItem[] nfts // items in order
+  );
+
+  struct TokenInfo {
+    uint256 tokenId;
+    uint256 numTokens;
+  }
+
+  struct OrderItem {
+    address collection;
+    TokenInfo[] tokens;
+  }
+
+*/
 
 // ============================================================= SEAPORT ===================================================================
 

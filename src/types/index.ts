@@ -15,6 +15,17 @@ export interface PreParsedNftSale {
   tokenStandard: TokenStandard;
 }
 
+export interface PreParsedInfinityMatchNftSale extends PreParsedNftSale {
+  buyOrderHash: string;
+  sellOrderHash: string;
+  complication: string;
+}
+
+export interface PreParsedInfinityTakeNftSale extends PreParsedNftSale {
+  orderHash: string;
+  complication: string;
+}
+
 export interface SeaportSoldNft {
   tokenAddress: string;
   tokenId: string;
