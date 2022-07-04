@@ -2,12 +2,21 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Block } from '@ethersproject/abstract-provider';
-import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
-import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS, ETHEREUM_WETH_ADDRESS, jsonString, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
+import { ChainNFTs, FirestoreOrder, OBOrderStatus, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import {
+  ETHEREUM_INFINITY_EXCHANGE_ADDRESS,
+  ETHEREUM_WETH_ADDRESS,
+  firestoreConstants,
+  sleep,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
+import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { BigNumber, ethers } from 'ethers';
 import DebouncedSalesUpdater from 'models/DebouncedSalesUpdater';
-import SeaportABI from '../abi/seaport.json';
+import { Order } from 'models/order';
+import { OrderItem } from 'models/order-item';
 import InfinityABI from '../abi/infinityExchange.json';
+import SeaportABI from '../abi/seaport.json';
 import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import {
   MERKLE_VALIDATOR_ADDRESS,
@@ -16,19 +25,20 @@ import {
   WYVERN_ATOMICIZER_ADDRESS,
   WYVERN_EXCHANGE_ADDRESS
 } from '../constants';
-import { logger } from '../container';
+import { firebase, logger } from '../container';
 import Providers from '../models/Providers';
-import { PreParsedInfinityMatchNftSale, PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
-import { parseSaleOrders } from './sales-parser.controller';
+import { PreParsedInfinityNftSale, PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from '../types/index';
+import { parseInfinitySaleOrder, parseSaleOrders } from './sales-parser.controller';
 
 const ETH_CHAIN_ID = '1';
-const GOERLI_CHAIN_ID = '5';
+// const GOERLI_CHAIN_ID = '5';
 const providers = new Providers();
 const ethProvider = providers.getProviderByChainId(ETH_CHAIN_ID);
-const goerliProvider = providers.getProviderByChainId(GOERLI_CHAIN_ID);
+// const goerliProvider = providers.getProviderByChainId(GOERLI_CHAIN_ID);
 
 const SeaportContract = new ethers.Contract(SEAPORT_ADDRESS, SeaportABI, ethProvider);
 const InfinityContract = new ethers.Contract(ETHEREUM_INFINITY_EXCHANGE_ADDRESS, InfinityABI, ethProvider);
+// const InfinityContract = new ethers.Contract(GOERLI_INFINITY_EXCHANGE_ADDRESS, InfinityABI, goerliProvider);
 const OpenseaContract = new ethers.Contract(WYVERN_EXCHANGE_ADDRESS, WyvernExchangeABI, ethProvider);
 const openseaIface = new ethers.utils.Interface(WyvernExchangeABI);
 
@@ -222,7 +232,7 @@ const getTransactionByHash = async (txHash: string): Promise<ethers.utils.BytesL
   return (await ethProvider.getTransaction(txHash)).data;
 };
 
-async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: ethers.Event[]): Promise<void> {
+async function handleSeaportEvent(args: ethers.Event[]): Promise<void> {
   if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
     return;
   }
@@ -341,80 +351,338 @@ async function handleSeaportEvent(salesUpdater: DebouncedSalesUpdater, args: eth
   }
 }
 
-async function handleInfinityMatchEvent(salesUpdater: DebouncedSalesUpdater, args: ethers.Event[]): Promise<void> {
+async function handleInfinityMatchEvent(args: ethers.Event[]): Promise<void> {
   if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
     return;
   }
   const event: ethers.Event = args[args.length - 1];
   const eventData = event.args;
-  if (eventData?.length !== 6) {
+  if (eventData?.length !== 8) {
     return;
   }
   // see commented reference below for payload structure
-  const sellOrderHash = eventData[0];
-  const buyOrderHash = eventData[1];
+  const sellOrderHash = String(eventData[0]);
+  const buyOrderHash = String(eventData[1]);
   const seller = trimLowerCase(String(eventData[2]));
   const buyer = trimLowerCase(String(eventData[3]));
   const complication = trimLowerCase(String(eventData[4]));
   const currency = trimLowerCase(String(eventData[5]));
   const amount = BigNumber.from(eventData[6]);
+  const nfts = eventData[7];
+
+  let quantity = 0;
+  const orderItems: ChainNFTs[] = [];
+
+  for (const orderItem of nfts) {
+    const tokens = orderItem[1];
+    const tokenInfos = [];
+    for (const token of tokens) {
+      const tokenId = BigNumber.from(token[0]).toString();
+      const numTokens = BigNumber.from(token[1]).toNumber();
+      const tokenInfo = {
+        tokenId,
+        numTokens
+      };
+      tokenInfos.push(tokenInfo);
+      quantity += numTokens;
+    }
+
+    const address = trimLowerCase(String(orderItem[0]));
+    const chainNFT: ChainNFTs = {
+      collection: address,
+      tokens: tokenInfos
+    };
+    orderItems.push(chainNFT);
+  }
 
   const txHash = event.transactionHash;
 
   try {
     const block: Block = await event.getBlock();
-    const res: PreParsedInfinityMatchNftSale = {
+    const res: PreParsedInfinityNftSale = {
       chainId: ETH_CHAIN_ID,
       txHash,
       blockNumber: block.number,
       timestamp: block.timestamp * 1000,
-      sellOrderHash,
-      buyOrderHash,
       price: amount.toBigInt(),
       complication,
       paymentToken: currency,
-      quantity: 1,
+      quantity,
       source: SaleSource.Infinity,
       tokenStandard: TokenStandard.ERC721,
       seller,
       buyer,
-      collectionAddress: '',
-      tokenId: ''
+      orderItems
     };
 
-    const saleOrders: PreParsedNftSale[] = [];
-    // for (const nft of soldNfts) {
-    //   const saleOrder: PreParsedNftSale = {
-    //     ...res,
-    //     seller: nft.seller,
-    //     buyer: nft.buyer,
-    //     collectionAddress: nft.tokenAddress,
-    //     tokenId: nft.tokenId
-    //   };
-    //   saleOrders.push(saleOrder);
-    // }
+    logger.log(`Listener:[Infinity: MatchOrderFulfilled] fetched orders successfully for txn: ${txHash}`);
 
-    if (Array.isArray(saleOrders) && saleOrders?.length > 0) {
-      logger.log(`Listener:[Seaport] fetched new order successfully: ${txHash}`);
-      const { sales, totalPrice } = parseSaleOrders(saleOrders);
-      await salesUpdater.saveTransaction({ sales, totalPrice });
-    }
+    // update order statuses
+    await updateInfinityOrderStatus(res, sellOrderHash);
+    await updateInfinityOrderStatus(res, buyOrderHash);
+
+    // update sales stats, write to feed, write to sales collection
+    const { sales, totalPrice } = parseInfinitySaleOrder(res);
+    await salesUpdater.saveTransaction({ sales, totalPrice });
   } catch (err) {
-    logger.error(`Listener:[Seaport] failed to fetch new order: ${txHash}`);
+    logger.error(`Listener:[Infinity: MatchOrderFulfilled] failed to update orders for txn: ${txHash}`, err);
+  }
+}
+
+async function handleInfinityTakeEvent(args: ethers.Event[]): Promise<void> {
+  if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+    return;
+  }
+  const event: ethers.Event = args[args.length - 1];
+  const eventData = event.args;
+  if (eventData?.length !== 7) {
+    return;
+  }
+
+  // see commented reference below for payload structure
+  const orderHash = String(eventData[0]);
+  const seller = trimLowerCase(String(eventData[1]));
+  const buyer = trimLowerCase(String(eventData[2]));
+  const complication = trimLowerCase(String(eventData[3]));
+  const currency = trimLowerCase(String(eventData[4]));
+  const amount = BigNumber.from(eventData[5]);
+  const nfts = eventData[6];
+
+  let quantity = 0;
+  const orderItems: ChainNFTs[] = [];
+
+  for (const orderItem of nfts) {
+    const tokens = orderItem[1];
+    const tokenInfos = [];
+    for (const token of tokens) {
+      const tokenId = BigNumber.from(token[0]).toString();
+      const numTokens = BigNumber.from(token[1]).toNumber();
+      const tokenInfo = {
+        tokenId,
+        numTokens
+      };
+      tokenInfos.push(tokenInfo);
+      quantity += numTokens;
+    }
+
+    const address = trimLowerCase(String(orderItem[0]));
+    const chainNFT: ChainNFTs = {
+      collection: address,
+      tokens: tokenInfos
+    };
+    orderItems.push(chainNFT);
+  }
+
+  const txHash = event.transactionHash;
+
+  try {
+    const block: Block = await event.getBlock();
+    const res: PreParsedInfinityNftSale = {
+      chainId: ETH_CHAIN_ID,
+      txHash,
+      blockNumber: block.number,
+      timestamp: block.timestamp * 1000,
+      price: amount.toBigInt(),
+      complication,
+      paymentToken: currency,
+      quantity,
+      source: SaleSource.Infinity,
+      tokenStandard: TokenStandard.ERC721,
+      seller,
+      buyer,
+      orderItems
+    };
+
+    logger.log(`Listener:[Infinity: TakeOrderFulfilled] fetched orders successfully for txn: ${txHash}`);
+
+    // update order status
+    await updateInfinityOrderStatus(res, orderHash);
+
+    // update sales stats, write to feed, write to sales collection
+    const { sales, totalPrice } = parseInfinitySaleOrder(res);
+    await salesUpdater.saveTransaction({ sales, totalPrice });
+  } catch (err) {
+    logger.error(`Listener:[Infinity: TakeOrderFulfilled] failed to update orders for txn: ${txHash}`, err);
+  }
+}
+
+async function handleCancelAllOrders(args: ethers.Event[]): Promise<void> {
+  if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+    return;
+  }
+  const event: ethers.Event = args[args.length - 1];
+  const eventData = event.args;
+  if (eventData?.length !== 2) {
+    return;
+  }
+
+  // see commented reference below for payload structure
+  const user = trimLowerCase(String(eventData[0]));
+  const minOrderNonce = parseInt(String(eventData[1]));
+
+  try {
+    logger.log(
+      `Listener:[Infinity: CancelAllOrders] cancelling all orders with txn: ${event.transactionHash} for user ${user} with minOrderNonce ${minOrderNonce}`
+    );
+    // update min order nonce in user doc
+    const userDocRef = firebase.db.collection(firestoreConstants.USERS_COLL).doc(user);
+    await userDocRef.set({ minOrderNonce }, { merge: true });
+
+    // update order statuses
+    await updateInfinityOrderStatusesForCancelAll(user, minOrderNonce);
+  } catch (err) {
+    logger.error(
+      `Listener:[Infinity: CancelAllOrders] failed to update orders for txn: ${event.transactionHash}`,
+      err
+    );
+  }
+}
+
+async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNonce: number): Promise<void> {
+  try {
+    const orders = await firebase.db
+      .collection(firestoreConstants.ORDERS_COLL)
+      .where('makerAddress', '==', user)
+      .where('nonce', '<', minOrderNonce)
+      .get();
+
+    logger.log(`Found: ${orders.size} orders to update for cancel all`);
+    const batchHandler = new FirestoreBatchHandler();
+    for (const order of orders.docs) {
+      const orderRef = order.ref;
+      batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+
+      // update orderItems sub collection
+      const orderItems = await orderRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
+      logger.log(`Found: ${orderItems.size} order items to update for cancel all for this order`);
+      for (const orderItem of orderItems.docs) {
+        const orderItemRef = orderItem.ref;
+        batchHandler.add(orderItemRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+      }
+    }
+    // final flush
+    await batchHandler.flush();
+  } catch (err) {
+    logger.error(`Listener:[Infinity: CancelAllOrders] failed to update order statuses for cancel all: ${err}`);
+  }
+}
+
+async function handleCancelMultipleOrders(args: ethers.Event[]): Promise<void> {
+  if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+    return;
+  }
+  const event: ethers.Event = args[args.length - 1];
+  const eventData = event.args;
+  if (eventData?.length !== 2) {
+    return;
+  }
+
+  // see commented reference below for payload structure
+  const user = trimLowerCase(String(eventData[0]));
+  const nonces = eventData[1];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  const parsedNonces = nonces.map((nonce: string) => parseInt(nonce));
+
+  try {
+    logger.log(
+      `Listener:[Infinity: CancelMultipleOrders] cancelling multiple orders with txn: ${event.transactionHash} for user ${user} with nonces ${parsedNonces}`
+    );
+    // update order statuses
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    await updateInfinityOrderStatusesForMultipleCancel(user, parsedNonces);
+  } catch (err) {
+    logger.error(
+      `Listener:[Infinity: CancelMultipleOrders] failed to update orders for txn: ${event.transactionHash}`,
+      err
+    );
+  }
+}
+
+async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsedNonces: number[]): Promise<void> {
+  try {
+    const batchHandler = new FirestoreBatchHandler();
+    for (const nonce of parsedNonces) {
+      const orders = await firebase.db
+        .collection(firestoreConstants.ORDERS_COLL)
+        .where('makerAddress', '==', user)
+        .where('nonce', '==', nonce)
+        .get();
+
+      for (const order of orders.docs) {
+        const orderRef = order.ref;
+        batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+
+        // update orderItems sub collection
+        const orderItems = await orderRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
+        logger.log(`Found: ${orderItems.size} order items to update for cancel multiple for this order`);
+        for (const orderItem of orderItems.docs) {
+          const orderItemRef = orderItem.ref;
+          batchHandler.add(orderItemRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+        }
+      }
+    }
+
+    // final flush
+    await batchHandler.flush();
+  } catch (err) {
+    logger.error(`Listener:[Infinity: CancelMultipleOrders] failed to update order statuses: ${err}`);
+  }
+}
+
+async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale, orderHash: string): Promise<void> {
+  const orderItemQueries = Object.values(OrderItem.getImpactedOrderItemsQueries(infinitySale, orderHash));
+  const orderItemRefs = await Promise.all(orderItemQueries.map((query) => query.get()));
+
+  const orderPromises = orderItemRefs
+    .flatMap((item) => item.docs)
+    .map((item) => {
+      const order = item.ref.parent.parent;
+      return new Promise<Order>((resolve, reject) => {
+        order
+          ?.get()
+          .then((snap) => {
+            const orderData = snap.data() as FirestoreOrder;
+            if (orderData) {
+              resolve(new Order(orderData));
+            } else {
+              reject(new Error('Order not found'));
+            }
+          })
+          .catch((err) => {
+            logger.error(`Listener:[Infinity] failed to get order: ${order?.id}`, err);
+            reject(err);
+          });
+      });
+    });
+
+  const orders = await Promise.all(orderPromises);
+
+  logger.log(`Found: ${orders.length} orders to update`);
+
+  for (const order of orders) {
+    await order.handleSale(infinitySale);
   }
 }
 
 const execute = (): void => {
   InfinityContract.on('MatchOrderFulfilled', async (...args: ethers.Event[]) => {
-    await handleInfinityMatchEvent(salesUpdater, args);
+    await handleInfinityMatchEvent(args);
   });
 
-  // InfinityContract.on('TakeOrderFulfilled', async (...args: ethers.Event[]) => {
-  //   await handleInfinityTakeEvent(salesUpdater, args);
-  // });
+  InfinityContract.on('TakeOrderFulfilled', async (...args: ethers.Event[]) => {
+    await handleInfinityTakeEvent(args);
+  });
+
+  InfinityContract.on('CancelAllOrders', async (...args: ethers.Event[]) => {
+    await handleCancelAllOrders(args);
+  });
+
+  InfinityContract.on('CancelMultipleOrders', async (...args: ethers.Event[]) => {
+    await handleCancelMultipleOrders(args);
+  });
 
   SeaportContract.on('OrderFulfilled', async (...args: ethers.Event[]) => {
-    await handleSeaportEvent(salesUpdater, args);
+    await handleSeaportEvent(args);
   });
 
   OpenseaContract.on('OrdersMatched', async (...args: ethers.Event[]) => {
@@ -497,11 +765,14 @@ export { execute };
     TokenInfo[] tokens;
   }
 
+  event CancelAllOrders(address indexed user, uint256 newMinNonce);
+  event CancelMultipleOrders(address indexed user, uint256[] orderNonces);
+
 */
 
 // ============================================================= SEAPORT ===================================================================
 
-  /* 
+/* 
     Event format: event.args array contains the following items:
     event OrderFulfilled(
       bytes32 orderHash,

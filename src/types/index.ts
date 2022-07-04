@@ -1,4 +1,4 @@
-import { SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 export interface PreParsedNftSale {
   chainId: string;
   txHash: string;
@@ -15,15 +15,20 @@ export interface PreParsedNftSale {
   tokenStandard: TokenStandard;
 }
 
-export interface PreParsedInfinityMatchNftSale extends PreParsedNftSale {
-  buyOrderHash: string;
-  sellOrderHash: string;
+export interface PreParsedInfinityNftSale {
+  chainId: string;
+  txHash: string;
+  blockNumber: number;
+  timestamp: number;
+  price: BigInt;
+  paymentToken: string;
+  buyer: string;
+  seller: string;
+  quantity: number;
+  source: SaleSource;
+  tokenStandard: TokenStandard;
   complication: string;
-}
-
-export interface PreParsedInfinityTakeNftSale extends PreParsedNftSale {
-  orderHash: string;
-  complication: string;
+  orderItems: ChainNFTs[];
 }
 
 export interface SeaportSoldNft {
