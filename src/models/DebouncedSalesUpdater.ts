@@ -107,7 +107,7 @@ export default class DebouncedSalesUpdater {
   }
 
   /**
-   * groups sales sales for a collection into batches and
+   * groups sales for a collection into batches and
    * saves batches one at a time
    */
   private async updateCollectionSales(transactions: TransactionType[]) {

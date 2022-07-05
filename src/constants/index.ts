@@ -15,6 +15,11 @@ export const JSON_RPC_MAINNET_KEYS = (() => {
   return apiKeys;
 })();
 
+export const JSON_RPC_GOERLI_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('JSON_RPC_GOERLI');
+  return apiKeys;
+})();
+
 export const OPENSEA_API_KEYS = (() => {
   const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
   return apiKeys;
