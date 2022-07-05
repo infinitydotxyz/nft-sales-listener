@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { firebase } from 'container';
+import { firebase, logger } from 'container';
 import {
   firestoreConstants,
   getCollectionDocId
@@ -92,4 +92,15 @@ export function getIncomingStats(data: TransactionType | NftSale): PreAggregatio
 
 export function isCollectionIndexed(collection?: Partial<Collection>): boolean {
   return collection?.state?.create?.step === CreationFlow.Complete;
+}
+
+export async function getUsername(address: string): Promise<string> {
+  try {
+    const user = await firebase.db.collection(firestoreConstants.USERS_COLL).doc(address).get();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return user?.data?.()?.username ?? '';
+  } catch (err) {
+    logger.error(`Failed to get user doc for ${address}`);
+    return '';
+  }
 }
