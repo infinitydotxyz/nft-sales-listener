@@ -581,7 +581,11 @@ async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNon
     const batchHandler = new FirestoreBatchHandler();
     for (const order of orders.docs) {
       // update counters
-      Order.updateCounters(order.data() as FirestoreOrder);
+      try {
+        Order.updateCounters(order.data() as FirestoreOrder);
+      } catch (err) {
+        logger.error('Error updating order counters on cancel all orders', err);
+      }
 
       // update order
       const orderRef = order.ref;
@@ -614,7 +618,11 @@ async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsed
 
       for (const order of orders.docs) {
         // update counters
-        Order.updateCounters(order.data() as FirestoreOrder);
+        try {
+          Order.updateCounters(order.data() as FirestoreOrder);
+        } catch (err) {
+          logger.error('Error updating order counters on cancel multiple orders', err);
+        }
 
         // update order
         const orderRef = order.ref;
