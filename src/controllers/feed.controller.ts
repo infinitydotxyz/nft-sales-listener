@@ -1,7 +1,7 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { ChainId, Collection, EtherscanLinkType, InfinityLinkType } from '@infinityxyz/lib/types/core';
-import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { Token } from '@infinityxyz/lib/types/core/Token';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { getEtherscanLink } from '@infinityxyz/lib/utils/etherscan';
@@ -80,7 +80,7 @@ export async function writeSalesToFeed(
 
           const nftSaleEvent: NftSaleEvent = {
             usersInvolved: [item.buyer, item.seller],
-            type: FeedEventType.NftSale,
+            type: EventType.NftSale,
             collectionProfileImage: collection?.metadata?.profileImage ?? '',
             hasBlueCheck: collection?.hasBlueCheck ?? false,
             buyer: item.buyer,

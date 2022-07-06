@@ -538,35 +538,6 @@ async function handleCancelAllOrders(args: ethers.Event[]): Promise<void> {
   }
 }
 
-async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNonce: number): Promise<void> {
-  try {
-    const orders = await firebase.db
-      .collection(firestoreConstants.ORDERS_COLL)
-      .where('makerAddress', '==', user)
-      .where('nonce', '<', minOrderNonce)
-      .get();
-
-    logger.log(`Found: ${orders.size} orders to update for cancel all`);
-    const batchHandler = new FirestoreBatchHandler();
-    for (const order of orders.docs) {
-      const orderRef = order.ref;
-      batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
-
-      // update orderItems sub collection
-      const orderItems = await orderRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
-      logger.log(`Found: ${orderItems.size} order items to update for cancel all for this order`);
-      for (const orderItem of orderItems.docs) {
-        const orderItemRef = orderItem.ref;
-        batchHandler.add(orderItemRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
-      }
-    }
-    // final flush
-    await batchHandler.flush();
-  } catch (err) {
-    logger.error(`Listener:[Infinity: CancelAllOrders] failed to update order statuses for cancel all: ${err}`);
-  }
-}
-
 async function handleCancelMultipleOrders(args: ethers.Event[]): Promise<void> {
   if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
     return;
@@ -598,6 +569,39 @@ async function handleCancelMultipleOrders(args: ethers.Event[]): Promise<void> {
   }
 }
 
+async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNonce: number): Promise<void> {
+  try {
+    const orders = await firebase.db
+      .collection(firestoreConstants.ORDERS_COLL)
+      .where('makerAddress', '==', user)
+      .where('nonce', '<', minOrderNonce)
+      .get();
+
+    logger.log(`Found: ${orders.size} orders to update for cancel all`);
+    const batchHandler = new FirestoreBatchHandler();
+    for (const order of orders.docs) {
+      // update counters
+      Order.updateCounters(order.data() as FirestoreOrder);
+
+      // update order
+      const orderRef = order.ref;
+      batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+
+      // update orderItems sub collection
+      const orderItems = await orderRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
+      logger.log(`Found: ${orderItems.size} order items to update for cancel all for this order`);
+      for (const orderItem of orderItems.docs) {
+        const orderItemRef = orderItem.ref;
+        batchHandler.add(orderItemRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
+      }
+    }
+    // final flush
+    await batchHandler.flush();
+  } catch (err) {
+    logger.error(`Listener:[Infinity: CancelAllOrders] failed to update order statuses for cancel all: ${err}`);
+  }
+}
+
 async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsedNonces: number[]): Promise<void> {
   try {
     const batchHandler = new FirestoreBatchHandler();
@@ -609,6 +613,10 @@ async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsed
         .get();
 
       for (const order of orders.docs) {
+        // update counters
+        Order.updateCounters(order.data() as FirestoreOrder);
+
+        // update order
         const orderRef = order.ref;
         batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
 
