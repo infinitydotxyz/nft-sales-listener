@@ -531,10 +531,7 @@ async function handleCancelAllOrders(args: ethers.Event[]): Promise<void> {
     // update order statuses
     await updateInfinityOrderStatusesForCancelAll(user, minOrderNonce);
   } catch (err) {
-    logger.error(
-      `Listener:[Infinity: CancelAllOrders] failed to update orders for txn: ${event.transactionHash}`,
-      err
-    );
+    logger.error(`Listener:[Infinity: CancelAllOrders] failed to update orders for txn: ${event.transactionHash}`, err);
   }
 }
 
@@ -582,7 +579,7 @@ async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNon
     for (const order of orders.docs) {
       // update counters
       try {
-        Order.updateCounters(order.data() as FirestoreOrder);
+        Order.updateOrderCounters(order.data() as FirestoreOrder);
       } catch (err) {
         logger.error('Error updating order counters on cancel all orders', err);
       }
@@ -619,7 +616,7 @@ async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsed
       for (const order of orders.docs) {
         // update counters
         try {
-          Order.updateCounters(order.data() as FirestoreOrder);
+          Order.updateOrderCounters(order.data() as FirestoreOrder);
         } catch (err) {
           logger.error('Error updating order counters on cancel multiple orders', err);
         }

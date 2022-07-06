@@ -36,9 +36,9 @@ export class Order {
       .doc(orderId) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
-  static updateCounters(order: FirestoreOrder) {
+  static updateOrderCounters(order: FirestoreOrder) {
     const numItems = order.numItems;
-    if (order.isSellOrder) {
+    if (order.signedOrder.isSellOrder) {
       Order.numSellOrderItems.incrementBy(numItems * -1);
       Order.openSellInterest.incrementBy(order.startPriceEth * -1);
     } else {
@@ -65,7 +65,7 @@ export class Order {
     this.order.orderStatus = OBOrderStatus.Invalid;
 
     try {
-      Order.updateCounters(this.order);
+      Order.updateOrderCounters(this.order);
     } catch (err) {
       logger.error('Error updating order counters on order fulfillment', err);
     }
