@@ -1,6 +1,6 @@
 import { FirestoreOrder, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { firebase } from 'container';
+import { firebase, logger } from 'container';
 import { FirestoreDistributedCounter } from 'database/FirestoreCounter';
 import { PreParsedInfinityNftSale } from 'types';
 import { OrderItem } from './order-item';
@@ -64,7 +64,11 @@ export class Order {
 
     this.order.orderStatus = OBOrderStatus.Invalid;
 
-    Order.updateCounters(this.order);
+    try {
+      Order.updateCounters(this.order);
+    } catch (err) {
+      logger.error('Error updating order counters on order fulfillment', err);
+    }
 
     await this.save();
     return this.order;

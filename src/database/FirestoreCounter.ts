@@ -1,8 +1,8 @@
 import { logger } from 'container';
 import * as uuid from 'uuid';
+import firebaseAdmin from 'firebase-admin';
 
 export class FirestoreDistributedCounter {
-  
   private shardsRef: FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData>;
   private readonly SHARD_COLLECTION_ID = '_counter_shards_';
 
@@ -20,7 +20,7 @@ export class FirestoreDistributedCounter {
   }
 
   public incrementBy(val: number) {
-    const increment: any = FirebaseFirestore.FieldValue.increment(val);
+    const increment: any = firebaseAdmin.firestore.FieldValue.increment(val);
     const update: { [key: string]: any } = this.field
       .split('.')
       .reverse()
