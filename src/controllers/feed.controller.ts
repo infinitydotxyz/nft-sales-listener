@@ -62,7 +62,6 @@ export async function writeSalesToFeed(
           const image =
             nft?.image?.url ??
             nft?.alchemyCachedImage ??
-            nft?.zoraImage?.mediaEncoding.thumbnail ??
             nft?.image?.originalUrl ??
             collection?.metadata?.profileImage ??
             '';
