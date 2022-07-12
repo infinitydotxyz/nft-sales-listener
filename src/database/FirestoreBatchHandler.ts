@@ -1,7 +1,7 @@
 import { sleep } from '@infinityxyz/lib/utils';
 import { firebase, logger } from 'container';
 
-const MAX_SIZE = 500;
+const MAX_SIZE = 200;
 
 interface Batch {
   batch: FirebaseFirestore.WriteBatch;
