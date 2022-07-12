@@ -60,10 +60,10 @@ export async function writeSalesToFeed(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const nftSlug = nft?.slug ?? trimLowerCase(nftName) ?? '';
           const image =
-            nft?.image?.url ??
-            nft?.alchemyCachedImage ??
-            nft?.image?.originalUrl ??
-            collection?.metadata?.profileImage ??
+            nft?.image?.url ||
+            nft?.alchemyCachedImage ||
+            nft?.image?.originalUrl ||
+            collection?.metadata?.profileImage ||
             '';
 
           if (!collectionSlug || !collectionName || !nftName || !image) {
