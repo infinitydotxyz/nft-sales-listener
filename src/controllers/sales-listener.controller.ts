@@ -627,7 +627,7 @@ async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsed
 
         // update orderItems sub collection
         const orderItems = await orderRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL).get();
-        logger.log(`Found: ${orderItems.size} order items to update for cancel multiple for this order`);
+        logger.log(`Found: ${orderItems.size} infinity order items to update for cancel multiple for this order`);
         for (const orderItem of orderItems.docs) {
           const orderItemRef = orderItem.ref;
           batchHandler.add(orderItemRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
@@ -670,7 +670,7 @@ async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale,
 
   const orders = await Promise.all(orderPromises);
 
-  logger.log(`Found: ${orders.length} orders to update`);
+  logger.log(`Found: ${orders.length} infinity orders to update`);
 
   for (const order of orders) {
     await order.handleSale(infinitySale);
