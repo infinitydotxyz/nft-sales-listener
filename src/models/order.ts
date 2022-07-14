@@ -71,6 +71,7 @@ export class Order {
     }
 
     await this.save();
+    logger.log('Updated infinity order: ', this.order.id, 'to status', this.order.orderStatus);
     return this.order;
   }
 
