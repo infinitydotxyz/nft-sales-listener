@@ -642,7 +642,7 @@ export async function updateInfinityOrderStatusesForMultipleCancel(user: string,
   }
 }
 
-export async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale, orderHash: string): Promise<void> {
+async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale, orderHash: string): Promise<void> {
   const orderItemQueries = Object.values(OrderItem.getImpactedOrderItemsQueries(infinitySale, orderHash));
   const orderItemRefs = await Promise.all(orderItemQueries.map((query) => query.get()));
 

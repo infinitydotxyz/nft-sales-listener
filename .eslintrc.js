@@ -15,7 +15,6 @@ module.exports = {
     'prettier',
   ],
   rules: {
-    "no-console": 2,
     "@typescript-eslint/no-explicit-any": 0,
     "@typescript-eslint/no-unsafe-assignment": 0,
     "@typescript-eslint/no-misused-promises": 0
