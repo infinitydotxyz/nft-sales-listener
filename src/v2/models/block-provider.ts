@@ -5,7 +5,7 @@ import QuickLRU from "quick-lru";
 export class BlockProvider {
   private blockCache: QuickLRU<number, Block>;
 
-  constructor(maxSize: number, private provider: ethers.providers.JsonRpcProvider) {
+  constructor(maxSize: number, private provider: ethers.providers.StaticJsonRpcProvider) {
     this.blockCache = new QuickLRU({
       maxSize: maxSize
     });

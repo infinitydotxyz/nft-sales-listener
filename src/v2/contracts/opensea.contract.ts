@@ -11,6 +11,8 @@ export type OpenSeaListener = OpenSeaOrdersMatchedListener;
 export type OpenSeaListenerConstructor = typeof OpenSeaOrdersMatchedListener;
 
 export class OpenSeaContract extends Contract {
+  static readonly listenerConstructors = [OpenSeaOrdersMatchedListener];
+
   protected _listeners: OpenSeaListener[] = [];
 
   constructor(

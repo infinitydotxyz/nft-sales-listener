@@ -10,7 +10,9 @@ import { SeaportOrderFulfilledListener } from 'v2/contract-listeners/seaport-ord
 export type SeaportListener = SeaportOrderFulfilledListener;
 export type SeaportListenerConstructor = typeof SeaportOrderFulfilledListener;
 
-export class OpenSeaContract extends Contract {
+export class SeaportContract extends Contract {
+  static readonly listenerConstructors = [SeaportOrderFulfilledListener];
+
   protected _listeners: SeaportListener[] = [];
 
   constructor(

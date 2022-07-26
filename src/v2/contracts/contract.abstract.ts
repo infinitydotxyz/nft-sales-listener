@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
-import { ContractListener, ContractListenerEvent } from 'v2/contract-listeners/contract-listener.abstract';
-import { BlockProvider } from 'v2/models/block-provider';
+import { ContractListener, ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
+import { BlockProvider } from '../models/block-provider';
 
 export abstract class Contract {
   protected contract: ethers.Contract;

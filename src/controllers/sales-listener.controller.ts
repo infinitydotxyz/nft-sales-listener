@@ -495,7 +495,7 @@ async function handleInfinityTakeEvent(args: ethers.Event[]): Promise<void> {
 
     logger.log(`Listener:[Infinity: TakeOrderFulfilled] fetched orders successfully for txn: ${txHash}`);
 
-    // update order status // TODO add this to update take orders
+    // update order status 
     await updateInfinityOrderStatus(res, orderHash);
 
     // update sales stats, write to feed, write to sales collection
@@ -566,7 +566,7 @@ async function handleCancelMultipleOrders(args: ethers.Event[]): Promise<void> {
   }
 }
 
-async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNonce: number): Promise<void> {
+export async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNonce: number): Promise<void> {
   try {
     const orders = await firebase.db
       .collection(firestoreConstants.ORDERS_COLL)
@@ -603,7 +603,7 @@ async function updateInfinityOrderStatusesForCancelAll(user: string, minOrderNon
   }
 }
 
-async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsedNonces: number[]): Promise<void> {
+export async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsedNonces: number[]): Promise<void> {
   try {
     const batchHandler = new FirestoreBatchHandler();
     for (const nonce of parsedNonces) {
@@ -642,7 +642,7 @@ async function updateInfinityOrderStatusesForMultipleCancel(user: string, parsed
   }
 }
 
-async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale, orderHash: string): Promise<void> {
+export async function updateInfinityOrderStatus(infinitySale: PreParsedInfinityNftSale, orderHash: string): Promise<void> {
   const orderItemQueries = Object.values(OrderItem.getImpactedOrderItemsQueries(infinitySale, orderHash));
   const orderItemRefs = await Promise.all(orderItemQueries.map((query) => query.get()));
 
