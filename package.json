@@ -45,6 +45,7 @@
     "got": "^11.8.3",
     "moment": "^2.29.1",
     "p-queue": "^6.6.2",
+    "quick-lru": "^5.1.1",
     "reflect-metadata": "^0.1.13",
     "tsyringe": "^4.6.0",
     "uuid": "^8.3.2"

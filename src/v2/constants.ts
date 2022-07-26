@@ -1,0 +1,1 @@
+export const MAX_UNCLE_ABLE_BLOCKS = 6;

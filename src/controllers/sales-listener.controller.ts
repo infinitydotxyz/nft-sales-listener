@@ -474,7 +474,7 @@ async function handleInfinityTakeEvent(args: ethers.Event[]): Promise<void> {
   }
 
   const txHash = event.transactionHash;
-
+  
   try {
     const block: Block = await event.getBlock();
     const res: PreParsedInfinityNftSale = {
