@@ -3,6 +3,7 @@ import { sleep } from '@infinityxyz/lib/utils';
 import { MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from 'constants/wyvern-constants';
 import { ethers } from 'ethers';
 import { PreParsedNftSale } from 'types';
+import { BlockProvider } from 'v2/models/block-provider';
 import { ContractListener } from './contract-listener.abstract';
 
 export type OpenSeaOrdersMatchedEvent = PreParsedNftSale;
@@ -21,6 +22,13 @@ interface TokenInfo {
 }
 
 export class OpenSeaOrdersMatchedListener extends ContractListener<OpenSeaOrdersMatchedEvent[]> {
+  protected _eventFilter: ethers.EventFilter;
+
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
+    super(contract, blockProvider);
+    this._eventFilter = contract.filters.OrdersMatched();
+  }
+  
   async decodeLog(args: ethers.Event[]): Promise<OpenSeaOrdersMatchedEvent[] | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;

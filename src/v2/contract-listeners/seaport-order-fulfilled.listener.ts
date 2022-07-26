@@ -2,11 +2,19 @@ import { ChainId, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core'
 import { ETHEREUM_WETH_ADDRESS, NULL_ADDRESS, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers, Event } from 'ethers';
 import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from 'types';
+import { BlockProvider } from 'v2/models/block-provider';
 import { ContractListener } from './contract-listener.abstract';
 
 export type SeaportOrderFulfilledEvent = PreParsedNftSale[];
 
 export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrderFulfilledEvent> {
+  protected _eventFilter: ethers.EventFilter;
+
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
+    super(contract, blockProvider);
+    this._eventFilter = contract.filters.OrderFulfilled();
+  }
+  
   protected async decodeLog(args: Event[]): Promise<SeaportOrderFulfilledEvent | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;

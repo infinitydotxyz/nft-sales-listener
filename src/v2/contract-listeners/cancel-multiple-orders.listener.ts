@@ -10,9 +10,12 @@ export type CancelMultipleOrdersEvent = {
   txHash: string;
 };
 
-export class CancelMultipleOrders extends ContractListener<CancelMultipleOrdersEvent> {
-  constructor(contract: ethers.Contract, eventFilter: ethers.EventFilter, blockProvider: BlockProvider) {
-    super(contract, eventFilter, blockProvider);
+export class CancelMultipleOrdersListener extends ContractListener<CancelMultipleOrdersEvent> {
+  protected _eventFilter: ethers.EventFilter;
+
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
+    super(contract, blockProvider);
+    this._eventFilter = contract.filters.CancelMultipleOrders();
   }
 
   decodeLog(args: ethers.Event[]): CancelMultipleOrdersEvent | null {

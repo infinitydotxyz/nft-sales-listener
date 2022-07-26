@@ -5,30 +5,34 @@ import { PreParsedInfinityNftSale } from 'types';
 import { BlockProvider } from '../models/block-provider';
 import { ContractListener } from './contract-listener.abstract';
 
-export type TakeEvent = PreParsedInfinityNftSale & { orderHash: string };
+export type MatchEvent = PreParsedInfinityNftSale & { buyOrderHash: string; sellOrderHash: string };
 
-export class TakeListener extends ContractListener<TakeEvent> {
-  constructor(contract: ethers.Contract, eventFilter: ethers.EventFilter, blockProvider: BlockProvider) {
-    super(contract, eventFilter, blockProvider);
+export class MatchListener extends ContractListener<MatchEvent> {
+  protected _eventFilter: ethers.EventFilter;
+
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
+    super(contract, blockProvider);
+    this._eventFilter = contract.filters.MatchOrderFulfilled();
   }
 
-  async decodeLog(args: ethers.Event[]): Promise<TakeEvent | null> {
+  async decodeLog(args: ethers.Event[]): Promise<MatchEvent | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;
     }
     const event: ethers.Event = args[args.length - 1];
     const eventData = event.args;
-    if (eventData?.length !== 7) {
+    if (eventData?.length !== 8) {
       return null;
     }
     // see commented reference below for payload structure
-    const orderHash = String(eventData[0]);
-    const seller = trimLowerCase(String(eventData[1]));
-    const buyer = trimLowerCase(String(eventData[2]));
-    const complication = trimLowerCase(String(eventData[3]));
-    const currency = trimLowerCase(String(eventData[4]));
-    const amount = BigNumber.from(eventData[5]);
-    const nfts = eventData[6];
+    const sellOrderHash = String(eventData[0]);
+    const buyOrderHash = String(eventData[1]);
+    const seller = trimLowerCase(String(eventData[2]));
+    const buyer = trimLowerCase(String(eventData[3]));
+    const complication = trimLowerCase(String(eventData[4]));
+    const currency = trimLowerCase(String(eventData[5]));
+    const amount = BigNumber.from(eventData[6]);
+    const nfts = eventData[7];
 
     let quantity = 0;
     const orderItems: ChainNFTs[] = [];
@@ -58,7 +62,7 @@ export class TakeListener extends ContractListener<TakeEvent> {
 
     const txHash = event.transactionHash;
     const block = await this._blockProvider.getBlock(event.blockNumber);
-    const res: TakeEvent = {
+    const res: MatchEvent = {
       chainId: ChainId.Mainnet,
       txHash,
       blockNumber: block.number,
@@ -72,7 +76,8 @@ export class TakeListener extends ContractListener<TakeEvent> {
       seller,
       buyer,
       orderItems,
-      orderHash
+      buyOrderHash,
+      sellOrderHash
     };
     return res;
   }
