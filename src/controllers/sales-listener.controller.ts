@@ -417,7 +417,7 @@ async function handleInfinityMatchEvent(args: ethers.Event[]): Promise<void> {
 
     logger.log(`Listener:[Infinity: MatchOrderFulfilled] fetched orders successfully for txn: ${txHash}`);
 
-    // update order statuses
+    // update order statuses // TODO add these to update match orders
     await updateInfinityOrderStatus(res, sellOrderHash);
     await updateInfinityOrderStatus(res, buyOrderHash);
 
@@ -495,7 +495,7 @@ async function handleInfinityTakeEvent(args: ethers.Event[]): Promise<void> {
 
     logger.log(`Listener:[Infinity: TakeOrderFulfilled] fetched orders successfully for txn: ${txHash}`);
 
-    // update order status
+    // update order status // TODO add this to update take orders
     await updateInfinityOrderStatus(res, orderHash);
 
     // update sales stats, write to feed, write to sales collection

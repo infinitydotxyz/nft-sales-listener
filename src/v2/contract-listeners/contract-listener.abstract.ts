@@ -1,9 +1,9 @@
 import { ethers } from 'ethers';
 import { Contract } from 'ethers/lib/ethers';
 import EventEmitter from 'events';
-import { BlockProvider } from './block-provider';
-import { LogPaginator } from './log-paginator';
-import { HistoricalLogsChunk } from './log-paginator.types';
+import { BlockProvider } from '../models/block-provider';
+import { LogPaginator } from '../models/log-paginator';
+import { HistoricalLogsChunk } from '../models/log-paginator.types';
 
 export enum ContractListenerEvent {
     EventOccurred = 'eventOccurred',
@@ -19,21 +19,23 @@ export abstract class ContractListener<DecodedLogType> {
   protected _cancelListener?: () => void;
 
   protected get _thunkedLogRequest() {
-    const queryFilter = this.contract.queryFilter.bind(this.contract);
+    const queryFilter = this._contract.queryFilter.bind(this._contract);
     const thunkedLogRequest = async (fromBlock: number, toBlock: number | 'latest'): Promise<ethers.Event[]> => {
-      return await queryFilter(this.eventFilter, fromBlock, toBlock);
+      return await queryFilter(this._eventFilter, fromBlock, toBlock);
     };
     return thunkedLogRequest;
   }
 
   constructor(
-    protected contract: Contract,
-    protected eventFilter: ethers.EventFilter,
-    protected blockProvider: BlockProvider
+    protected _contract: Contract,
+    protected _eventFilter: ethers.EventFilter,
+    protected _blockProvider: BlockProvider
   ) {
     this._eventEmitter = new EventEmitter();
     this._logPaginator = new LogPaginator();
   }
+
+  protected abstract decodeLog(args: ethers.Event[]): Promise<DecodedLogType | null> | DecodedLogType | null; 
 
   start() {
     if(!this._cancelListener) {
@@ -45,21 +47,8 @@ export abstract class ContractListener<DecodedLogType> {
     this._cancelListener?.();
   }
 
-  private _start() {
-    const handler = async (...args: ethers.Event[]) => {
-        const decoded = await this.decodeLog(args);
-        if(decoded != null) {
-            this.emit(ContractListenerEvent.EventOccurred, decoded);
-        }
-    }
-    this.contract.on(this.eventFilter, handler);
-    return () => {
-        this.contract.off(this.eventFilter, handler);
-    }
-  }
-
   async *backfill(fromBlock: number, toBlock?: number) {
-    const events = (await this._logPaginator.paginateLogs(this._thunkedLogRequest, this.contract.provider, {
+    const events = (await this._logPaginator.paginateLogs(this._thunkedLogRequest, this._contract.provider, {
       fromBlock,
       toBlock: toBlock ?? 'latest',
       returnType: 'generator'
@@ -73,8 +62,6 @@ export abstract class ContractListener<DecodedLogType> {
     }
   }
 
-  protected abstract decodeLog(args: ethers.Event[]): Promise<DecodedLogType> | Promise<null> | DecodedLogType | null; 
-
   on<Event extends ContractListenerEvent>(event: ContractListenerEvent, handler: (e: Events<DecodedLogType>[Event]) => void): () => void {
     this._eventEmitter.on(event, handler);
     return () => {
@@ -82,7 +69,20 @@ export abstract class ContractListener<DecodedLogType> {
     };
   }
 
-  protected emit<Event extends keyof Events<DecodedLogType>>(event: Event, data: Events<DecodedLogType>[Event]): void {
+  protected _emit<Event extends keyof Events<DecodedLogType>>(event: Event, data: Events<DecodedLogType>[Event]): void {
     this._eventEmitter.emit(event as string, data);
+  }
+
+  private _start() {
+    const handler = async (...args: ethers.Event[]) => {
+        const decoded = await this.decodeLog(args);
+        if(decoded != null) {
+            this._emit(ContractListenerEvent.EventOccurred, decoded);
+        }
+    }
+    this._contract.on(this._eventFilter, handler);
+    return () => {
+        this._contract.off(this._eventFilter, handler);
+    }
   }
 }
