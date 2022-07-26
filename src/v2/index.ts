@@ -1,4 +1,4 @@
-
+import 'reflect-metadata'
 
 import { firebase, providers } from "container";
 import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc } from "./config";
@@ -13,6 +13,7 @@ function main() {
     const infinityExchangeMainnet = contractFactory.create(infinityExchangeMainnetDesc, handler);
     const wyvernExchangeMainnet = contractFactory.create(wyvernExchangeMainnetDesc, handler);
     const seaportExchangeMainnet = contractFactory.create(seaportExchangeMainnetDesc, handler);
+
 
     infinityExchangeMainnet.start();
     wyvernExchangeMainnet.start();

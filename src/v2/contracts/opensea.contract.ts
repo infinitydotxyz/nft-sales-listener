@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { OpenSeaOrdersMatchedListener } from 'v2/contract-listeners/opensea-orders-matched.listener';
 import { BlockProvider } from 'v2/models/block-provider';
 import { Contract } from './contract.abstract';
-import * as WyvernExchangeABI from '../../abi/wyvernExchange.json';
+import WyvernExchangeABI from '../../abi/wyvernExchange.json';
 import { ContractListenerEvent } from 'v2/contract-listeners/contract-listener.abstract';
 import { EventHandler } from 'v2/event-handlers/types';
 
