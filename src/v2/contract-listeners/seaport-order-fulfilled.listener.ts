@@ -8,6 +8,7 @@ import { ContractListener } from './contract-listener.abstract';
 export type SeaportOrderFulfilledEvent = PreParsedNftSale[];
 
 export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrderFulfilledEvent> {
+  protected _eventName = 'OrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {

@@ -20,6 +20,10 @@ export abstract class ContractListener<DecodedLogType> {
   protected _logPaginator: LogPaginator;
   protected _cancelListener?: () => void;
 
+  /**
+   * identifier for the event 
+   */
+  protected abstract _eventName: string;
   protected abstract _eventFilter: ethers.EventFilter;
 
   protected get _thunkedLogRequest() {

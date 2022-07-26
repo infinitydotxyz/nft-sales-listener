@@ -8,6 +8,7 @@ import { ContractListener } from './contract-listener.abstract';
 export type MatchEvent = PreParsedInfinityNftSale & { buyOrderHash: string; sellOrderHash: string };
 
 export class MatchListener extends ContractListener<MatchEvent> {
+  protected _eventName = 'MatchOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {

@@ -11,6 +11,7 @@ export type CancelAllOrdersEvent = {
 };
 
 export class CancelAllOrdersListener extends ContractListener<CancelAllOrdersEvent> {
+  protected _eventName = 'CancelAllOrders';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {

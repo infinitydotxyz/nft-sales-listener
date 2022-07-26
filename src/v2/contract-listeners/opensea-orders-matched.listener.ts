@@ -22,6 +22,7 @@ interface TokenInfo {
 }
 
 export class OpenSeaOrdersMatchedListener extends ContractListener<OpenSeaOrdersMatchedEvent[]> {
+  protected _eventName = 'OrdersMatched';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
