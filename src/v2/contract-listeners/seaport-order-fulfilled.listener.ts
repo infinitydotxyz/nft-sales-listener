@@ -13,8 +13,8 @@ export class SeaportOrderFulfilledListener extends ContractListenerBundle<Seapor
   public readonly eventName  = 'OrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
-    super(contract, blockProvider, txReceiptProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, chainId: ChainId, txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider, chainId, txReceiptProvider);
     this._eventFilter = contract.filters.OrderFulfilled();
   }
   

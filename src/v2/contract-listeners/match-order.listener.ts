@@ -2,6 +2,7 @@ import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
 import { PreParsedInfinityNftSale, PreParsedInfinityNftSaleInfoMatchOrder, PreParseInfinityMultipleNftSaleMatchOrder } from 'types';
+import { ProtocolFeeProvider } from 'v2/models/protocol-fee-provider';
 import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { BlockProvider } from '../models/block-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
@@ -13,8 +14,8 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
   public readonly eventName = 'MatchOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
-    super(contract, blockProvider, txReceiptProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, chainId: ChainId, txReceiptProvider: TransactionReceiptProvider, protected _protocolFeeProvider: ProtocolFeeProvider) {
+    super(contract, blockProvider, chainId, txReceiptProvider);
     this._eventFilter = contract.filters.MatchOrderFulfilled();
   }
 
@@ -116,12 +117,21 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
 
     const txHash = log.transactionHash;
     const block = await this._blockProvider.getBlock(log.blockNumber);
+    const price =  amount.toBigInt();
+    const { feesPaidWei, protocolFeeBPS } = (
+      await this._protocolFeeProvider.getProtocolFee(
+        trimLowerCase(this._contract.address),
+        this.chainId,
+        log.blockNumber,
+        log.transactionIndex
+      )
+    ).getFees(price);
     const res: MatchOrderEvent = {
       chainId: ChainId.Mainnet,
       txHash,
       blockNumber: block.number,
       timestamp: block.timestamp * 1000,
-      price: amount.toBigInt(),
+      price: price,
       transactionIndex: log.transactionIndex,
       complication,
       paymentToken: currency,
@@ -132,7 +142,9 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
       buyer,
       orderItems,
       buyOrderHash,
-      sellOrderHash
+      sellOrderHash,
+      protocolFee: feesPaidWei,
+      protocolFeeBPS: protocolFeeBPS
     };
     return res;
   }

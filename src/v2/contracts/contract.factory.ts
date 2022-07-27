@@ -1,26 +1,66 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import Firebase from 'database/Firebase';
 import Providers from 'models/Providers';
 import { EventHandler } from 'v2/event-handlers/types';
+import { ProtocolFeeProvider } from 'v2/models/protocol-fee-provider';
 import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
-import { ContractDescription, ContractType } from './types';
+import { InfinityExchangeContract } from './infinity-exchange.contract';
+import { OpenSeaContract } from './opensea.contract';
+import { SeaportContract } from './seaport.contract';
+import { ContractDescription, Contracts, ContractType } from './types';
 
 export class ContractFactory {
   constructor(private _providers: Providers, protected firebase: Firebase) {}
 
-  create(desc: ContractDescription, handler: EventHandler, txReceiptProvider: TransactionReceiptProvider): ContractType {
+  create(
+    desc: ContractDescription,
+    handler: EventHandler,
+    txReceiptProvider: TransactionReceiptProvider,
+    protocolFeeProvider: ProtocolFeeProvider
+  ): ContractType {
     const { address, chainId, type } = desc;
     const provider = this._providers.getProviderByChainId(chainId);
     const blockProvider = this._providers.getBlockProviderByChainId(chainId);
-    const contract = new type(
-      provider,
-      address,
-      blockProvider,
-      type.listenerConstructors as any[],
-      chainId,
-      this.firebase,
-      txReceiptProvider,
-      handler
-    );
-    return contract;
+    switch (type.discriminator) {
+      case Contracts.InfinityExchange:
+        return new InfinityExchangeContract(
+          provider,
+          address,
+          blockProvider,
+          InfinityExchangeContract.listenerConstructors,
+          chainId,
+          this.firebase,
+          txReceiptProvider,
+          protocolFeeProvider,
+          handler
+        );
+      case Contracts.Seaport:
+        return new SeaportContract(
+          provider,
+          address,
+          blockProvider,
+          SeaportContract.listenerConstructors,
+          chainId,
+          this.firebase,
+          txReceiptProvider,
+          handler
+        );
+      case Contracts.OpenSea:
+        return new OpenSeaContract(
+          provider,
+          address,
+          blockProvider,
+          OpenSeaContract.listenerConstructors,
+          chainId,
+          this.firebase,
+          txReceiptProvider,
+          handler
+        );
+        
+      default:
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        throw new Error(`Unknown contract type: ${(type as any)?.discriminator}`);
+    }
   }
 }

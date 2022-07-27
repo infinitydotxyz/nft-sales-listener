@@ -12,3 +12,10 @@ export interface ContractDescription {
     chainId: ChainId,
     type: ContractConstructors
 };
+
+
+export enum Contracts {
+    InfinityExchange = "InfinityExchange",
+    OpenSea = "OpenSea",
+    Seaport = "Seaport"
+}

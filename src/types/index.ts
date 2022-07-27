@@ -45,6 +45,8 @@ export interface PreParsedInfinityNftSale {
   source: SaleSource;
   paymentToken: string;
   price: BigInt;
+  protocolFeeBPS: string;
+  protocolFee: BigInt;
   buyer: string;
   seller: string;
   quantity: number;

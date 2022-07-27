@@ -1,3 +1,4 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
 import { BlockProvider } from 'v2/models/block-provider';
@@ -14,8 +15,8 @@ export class CancelAllOrdersListener extends ContractListener<CancelAllOrdersEve
   public readonly eventName = 'CancelAllOrders';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
-    super(contract, blockProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, chainId: ChainId) {
+    super(contract, blockProvider,chainId);
     this._eventFilter = contract.filters.CancelAllOrders();
   }
 

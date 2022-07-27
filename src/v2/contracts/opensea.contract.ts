@@ -8,6 +8,7 @@ import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import Firebase from 'database/Firebase';
 import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
+import { Contracts } from './types';
 
 export type OpenSeaListener = OpenSeaOrdersMatchedListener;
 export type OpenSeaListenerConstructor = typeof OpenSeaOrdersMatchedListener;
@@ -16,6 +17,8 @@ export class OpenSeaContract extends DbSyncedContract {
   static readonly listenerConstructors = [OpenSeaOrdersMatchedListener];
 
   protected _listeners: OpenSeaListener[] = [];
+
+  static discriminator: Contracts = Contracts.OpenSea;
 
   constructor(
     provider: ethers.providers.StaticJsonRpcProvider,
@@ -30,7 +33,7 @@ export class OpenSeaContract extends DbSyncedContract {
     super(address, provider, WyvernExchangeABI, blockProvider, chainId, firebase);
 
     for (const listener of listeners) {
-      this._listeners.push(new listener(this.contract, this.blockProvider, txReceiptProvider));
+      this._listeners.push(new listener(this.contract, this.blockProvider, chainId, txReceiptProvider));
     }
   }
 

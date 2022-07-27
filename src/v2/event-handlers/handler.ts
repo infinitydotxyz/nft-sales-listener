@@ -24,6 +24,7 @@ import { convertWeiToEther } from 'utils';
 import { CancelAllOrdersEvent } from 'v2/contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from 'v2/contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from 'v2/contract-listeners/match-order.listener';
+import { ProtocolFeeUpdatedEvent } from 'v2/contract-listeners/protocol-fee-updated.listener';
 import { TakeOrderBundleEvent } from 'v2/contract-listeners/take-order.listener';
 import { CollectionProvider } from 'v2/models/collection-provider';
 import { Order } from './order';
@@ -137,6 +138,10 @@ export class EventHandler implements IEventHandler {
   async nftSalesEvent(preParsedSale: PreParsedMultipleNftSale): Promise<void> {
     const parsedOrder = this.parseSaleOrder(preParsedSale);
     await this.saveSales(parsedOrder);
+  }
+
+  async protocolFeeUpdatedEvent(protocolFeeUpdated: ProtocolFeeUpdatedEvent): Promise<void> { 
+    await this.firebase.db.collection('protocolFeeEvents').doc(protocolFeeUpdated.txHash).set(protocolFeeUpdated)
   }
 
   private async saveSales(sales: NftSale[]): Promise<void> {

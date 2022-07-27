@@ -11,25 +11,35 @@ import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import Firebase from 'database/Firebase';
 import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
+import {
+  ProtocolFeeUpdatedListener
+} from 'v2/contract-listeners/protocol-fee-updated.listener';
+import { ProtocolFeeProvider } from 'v2/models/protocol-fee-provider';
+import { Contracts } from './types';
 
 export type InfinityExchangeEventListener =
   | CancelAllOrdersListener
   | CancelMultipleOrdersListener
   | MatchOrderListener
-  | TakeOrderListener;
+  | TakeOrderListener
+  | ProtocolFeeUpdatedListener;
 export type InfinityExchangeEventListenerConstructor =
   | typeof CancelAllOrdersListener
   | typeof CancelMultipleOrdersListener
   | typeof MatchOrderListener
-  | typeof TakeOrderListener;
+  | typeof TakeOrderListener
+  | typeof ProtocolFeeUpdatedListener;
 
 export class InfinityExchangeContract extends DbSyncedContract {
   static readonly listenerConstructors = [
     CancelAllOrdersListener,
     CancelMultipleOrdersListener,
     MatchOrderListener,
-    TakeOrderListener
+    TakeOrderListener,
+    ProtocolFeeUpdatedListener
   ];
+
+  static discriminator: Contracts = Contracts.InfinityExchange;
 
   protected _listeners: InfinityExchangeEventListener[] = [];
 
@@ -41,12 +51,13 @@ export class InfinityExchangeContract extends DbSyncedContract {
     chainId: ChainId,
     firebase: Firebase,
     txReceiptProvider: TransactionReceiptProvider,
-    private _handler: EventHandler,
+    protocolFeeProvider: ProtocolFeeProvider,
+    private _handler: EventHandler
   ) {
     super(address, provider, InfinityExchangeABI, blockProvider, chainId, firebase);
 
     for (const listener of listeners) {
-      this._listeners.push(new listener(this.contract, this.blockProvider, txReceiptProvider));
+      this._listeners.push(new listener(this.contract, this.blockProvider,chainId, txReceiptProvider, protocolFeeProvider));
     }
   }
 
@@ -73,6 +84,12 @@ export class InfinityExchangeContract extends DbSyncedContract {
       } else if (contractListener instanceof TakeOrderListener) {
         return contractListener.on(event, (taker) => {
           this._handler.takeOrderEvent(taker).catch((err) => {
+            console.error(err);
+          });
+        });
+      } else if (contractListener instanceof ProtocolFeeUpdatedListener) {
+        return contractListener.on(event, (protocolFeeUpdated) => {
+          this._handler.protocolFeeUpdatedEvent(protocolFeeUpdated).catch((err) => {
             console.error(err);
           });
         });

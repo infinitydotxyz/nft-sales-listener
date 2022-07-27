@@ -1,4 +1,5 @@
 
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
 import { Contract } from 'ethers/lib/ethers';
 import { Event, EventEmitter } from 'v2/models/event-emitter';
@@ -47,7 +48,7 @@ export abstract class ContractListener<DecodedLogType extends { blockNumber: num
     return thunkedLogRequest;
   }
 
-  constructor(protected _contract: Contract, protected _blockProvider: BlockProvider) {
+  constructor(protected _contract: Contract, protected _blockProvider: BlockProvider, protected chainId: ChainId) {
     this._eventEmitter = new EventEmitter();
     this._logPaginator = new LogPaginator();
   }

@@ -1,7 +1,12 @@
 import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
-import { PreParsedInfinityNftSale, PreParseInfinityMultipleNftSaleTakeOrder, PreParseInfinityNftSaleInfoTakeOrder } from 'types';
+import {
+  PreParsedInfinityNftSale,
+  PreParseInfinityMultipleNftSaleTakeOrder,
+  PreParseInfinityNftSaleInfoTakeOrder
+} from 'types';
+import { ProtocolFeeProvider } from 'v2/models/protocol-fee-provider';
 import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { BlockProvider } from '../models/block-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
@@ -13,14 +18,18 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
   public readonly eventName = 'TakeOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
-    super(contract, blockProvider, txReceiptProvider);
+  constructor(
+    contract: ethers.Contract,
+    blockProvider: BlockProvider,
+    chainId: ChainId,
+    txReceiptProvider: TransactionReceiptProvider,
+    protected _protocolFeeProvider: ProtocolFeeProvider
+  ) {
+    super(contract, blockProvider, chainId, txReceiptProvider);
     this._eventFilter = contract.filters.TakeOrderFulfilled();
   }
 
-  async decodeLogs(
-    logs: ethers.Event[]
-  ): Promise<TakeOrderBundleEvent | null> {
+  async decodeLogs(logs: ethers.Event[]): Promise<TakeOrderBundleEvent | null> {
     const events = [];
     const blockNumber = logs.find((item) => !!item.blockNumber)?.blockNumber;
     if (!blockNumber) {
@@ -31,7 +40,10 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       if (res) {
         events.push(res);
       }
-      if(trimLowerCase(log.transactionHash) === trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335')) {
+      if (
+        trimLowerCase(log.transactionHash) ===
+        trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335')
+      ) {
         console.log(JSON.stringify(res, null, 2));
       } // TODO remove
     }
@@ -112,6 +124,15 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       };
       orderItems.push(chainNFT);
     }
+    const price = amount.toBigInt();
+    const { feesPaidWei, protocolFeeBPS } = (
+      await this._protocolFeeProvider.getProtocolFee(
+        trimLowerCase(this._contract.address),
+        this.chainId,
+        log.blockNumber,
+        log.transactionIndex
+      )
+    ).getFees(price);
 
     const txHash = log.transactionHash;
     const block = await this._blockProvider.getBlock(log.blockNumber);
@@ -120,7 +141,7 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       txHash,
       blockNumber: block.number,
       timestamp: block.timestamp * 1000,
-      price: amount.toBigInt(),
+      price: price,
       complication,
       transactionIndex: log.transactionIndex,
       paymentToken: currency,
@@ -130,7 +151,9 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       seller,
       buyer,
       orderItems,
-      orderHash
+      orderHash,
+      protocolFee: feesPaidWei,
+      protocolFeeBPS: protocolFeeBPS
     };
     return res;
   }

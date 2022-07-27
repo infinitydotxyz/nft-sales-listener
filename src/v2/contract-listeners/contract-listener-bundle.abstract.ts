@@ -1,3 +1,4 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { Contract, ethers } from 'ethers';
 import { BlockProvider } from 'v2/models/block-provider';
 import { HistoricalLogsChunk } from 'v2/models/log-paginator.types';
@@ -12,8 +13,8 @@ export abstract class ContractListenerBundle<
   protected abstract decodeLogs(logs: ethers.providers.Log[]): Promise<DecodedLogs | null>;
   protected abstract decodeSingleLog(log: ethers.providers.Log): Promise<DecodedLog | null> | DecodedLog | null;
 
-  constructor(contract: Contract, blockProvider: BlockProvider, protected txReceiptProvider: TransactionReceiptProvider) {
-    super(contract, blockProvider);
+  constructor(contract: Contract, blockProvider: BlockProvider, chainId: ChainId, protected txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider, chainId);
   }
 
   protected decodeLog(): Promise<DecodedLog | null> {
