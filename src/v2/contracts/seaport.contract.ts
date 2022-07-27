@@ -7,6 +7,7 @@ import { EventHandler } from 'v2/event-handlers/types';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import Firebase from 'database/Firebase';
 import { DbSyncedContract } from './db-synced-contract.abstract';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 
 export type SeaportListener = SeaportOrderFulfilledListener;
 export type SeaportListenerConstructor = typeof SeaportOrderFulfilledListener;
@@ -23,12 +24,13 @@ export class SeaportContract extends DbSyncedContract {
     listeners: SeaportListenerConstructor[],
     chainId: ChainId,
     firebase: Firebase,
+    txReceiptProvider: TransactionReceiptProvider,
     private _handler: EventHandler,
   ) {
     super(address, provider, SeaportABI, blockProvider, chainId, firebase);
 
     for (const listener of listeners) {
-      this._listeners.push(new listener(this.contract, this.blockProvider));
+      this._listeners.push(new listener(this.contract, this.blockProvider, txReceiptProvider));
     }
   }
 

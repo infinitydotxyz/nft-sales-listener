@@ -2,6 +2,7 @@ import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
 import { PreParsedInfinityNftSale, PreParseInfinityMultipleNftSaleTakeOrder, PreParseInfinityNftSaleInfoTakeOrder } from 'types';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { BlockProvider } from '../models/block-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
@@ -12,8 +13,8 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
   public readonly eventName = 'TakeOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
-    super(contract, blockProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider, txReceiptProvider);
     this._eventFilter = contract.filters.TakeOrderFulfilled();
   }
 

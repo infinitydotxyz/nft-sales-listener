@@ -4,6 +4,7 @@ import { MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from 'constants/w
 import { ethers } from 'ethers';
 import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo } from 'types';
 import { BlockProvider } from 'v2/models/block-provider';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
 export type OpenSeaOrdersMatchedEvent ={ blockNumber: number; events: PreParsedNftSale[] };
@@ -29,8 +30,8 @@ export class OpenSeaOrdersMatchedListener extends ContractListenerBundle<
   public readonly eventName = 'OrdersMatched';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
-    super(contract, blockProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider, txReceiptProvider);
     this._eventFilter = contract.filters.OrdersMatched();
   }
 

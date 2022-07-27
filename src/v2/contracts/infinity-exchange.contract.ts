@@ -10,6 +10,7 @@ import { EventHandler } from 'v2/event-handlers/types';
 import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import Firebase from 'database/Firebase';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 
 export type InfinityExchangeEventListener =
   | CancelAllOrdersListener
@@ -39,12 +40,13 @@ export class InfinityExchangeContract extends DbSyncedContract {
     listeners: InfinityExchangeEventListenerConstructor[],
     chainId: ChainId,
     firebase: Firebase,
+    txReceiptProvider: TransactionReceiptProvider,
     private _handler: EventHandler,
   ) {
     super(address, provider, InfinityExchangeABI, blockProvider, chainId, firebase);
 
     for (const listener of listeners) {
-      this._listeners.push(new listener(this.contract, this.blockProvider));
+      this._listeners.push(new listener(this.contract, this.blockProvider, txReceiptProvider));
     }
   }
 

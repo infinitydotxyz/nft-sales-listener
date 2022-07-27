@@ -6,14 +6,17 @@ import { ContractFactory } from "./contracts/contract.factory";
 import { EventHandler } from "./event-handlers/handler";
 import { CollectionProvider } from "./models/collection-provider";
 import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
+import { ChainId } from '@infinityxyz/lib/types/core';
 
 function main() {
     const contractFactory = new ContractFactory(providers, firebase);
     const collectionProvider = new CollectionProvider(50, firebase);
     const handler = new EventHandler(firebase, providers, collectionProvider);
-    const infinityExchangeMainnet = contractFactory.create(infinityExchangeMainnetDesc, handler);
-    const wyvernExchangeMainnet = contractFactory.create(wyvernExchangeMainnetDesc, handler);
-    const seaportExchangeMainnet = contractFactory.create(seaportExchangeMainnetDesc, handler);
+    const mainnetTxReceiptProvider = new TransactionReceiptProvider(500, providers.getProviderByChainId(ChainId.Mainnet))
+    const infinityExchangeMainnet = contractFactory.create(infinityExchangeMainnetDesc, handler, mainnetTxReceiptProvider);
+    const wyvernExchangeMainnet = contractFactory.create(wyvernExchangeMainnetDesc, handler, mainnetTxReceiptProvider);
+    const seaportExchangeMainnet = contractFactory.create(seaportExchangeMainnetDesc, handler, mainnetTxReceiptProvider);
 
 
     infinityExchangeMainnet.sync().then(() => {

@@ -3,6 +3,7 @@ import { ETHEREUM_WETH_ADDRESS, NULL_ADDRESS, trimLowerCase } from '@infinityxyz
 import { BigNumber, ethers } from 'ethers';
 import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo, SeaportReceivedAmount, SeaportSoldNft } from 'types';
 import { BlockProvider } from 'v2/models/block-provider';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
 
@@ -12,8 +13,8 @@ export class SeaportOrderFulfilledListener extends ContractListenerBundle<Seapor
   public readonly eventName  = 'OrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
-  constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
-    super(contract, blockProvider);
+  constructor(contract: ethers.Contract, blockProvider: BlockProvider, txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider, txReceiptProvider);
     this._eventFilter = contract.filters.OrderFulfilled();
   }
   

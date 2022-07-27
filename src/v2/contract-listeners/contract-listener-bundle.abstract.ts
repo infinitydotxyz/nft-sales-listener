@@ -1,5 +1,7 @@
-import { ethers } from 'ethers';
+import { Contract, ethers } from 'ethers';
+import { BlockProvider } from 'v2/models/block-provider';
 import { HistoricalLogsChunk } from 'v2/models/log-paginator.types';
+import { TransactionReceiptProvider } from 'v2/models/transaction-receipt-provider';
 import { ContractListener, ContractListenerEvent, Events } from './contract-listener.abstract';
 
 
@@ -10,7 +12,11 @@ export abstract class ContractListenerBundle<
   protected abstract decodeLogs(logs: ethers.providers.Log[]): Promise<DecodedLogs | null>;
   protected abstract decodeSingleLog(log: ethers.providers.Log): Promise<DecodedLog | null> | DecodedLog | null;
 
-  protected decodeLog(event: ethers.Event[]): Promise<DecodedLog | null> {
+  constructor(contract: Contract, blockProvider: BlockProvider, protected txReceiptProvider: TransactionReceiptProvider) {
+    super(contract, blockProvider);
+  }
+
+  protected decodeLog(): Promise<DecodedLog | null> {
     throw new Error('Contract listener bundles should implement decodeLogs');
   }
 
@@ -24,7 +30,7 @@ export abstract class ContractListenerBundle<
     for await (const chunk of events) {
       for (const event of chunk.events) {
         try {
-          const tx = await this._contract.provider.getTransactionReceipt(event.transactionHash);
+          const tx = await this.txReceiptProvider.getReceipt(event.transactionHash);
           const logs = tx.logs.filter((log) => {
             return log.topics.every((topic, index) => {
               const correspondingTopic = this._eventFilter.topics?.[index];
@@ -50,7 +56,7 @@ export abstract class ContractListenerBundle<
     const handler = async (...args: ethers.Event[]) => {
       const arg = args[args.length - 1];
       if (arg?.transactionHash) {
-        const tx = await this._contract.provider.getTransactionReceipt(arg.transactionHash); // TODO add transaction receipt provider + cache
+        const tx = await this.txReceiptProvider.getReceipt(arg.transactionHash);
         const logs = tx.logs.filter((log) => {
           return log.topics.every((topic, index) => {
             const correspondingTopic = this._eventFilter.topics?.[index];
