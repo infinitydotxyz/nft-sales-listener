@@ -5,10 +5,10 @@ import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from 'types';
 import { BlockProvider } from 'v2/models/block-provider';
 import { ContractListener } from './contract-listener.abstract';
 
-export type SeaportOrderFulfilledEvent = PreParsedNftSale[];
+export type SeaportOrderFulfilledEvent = PreParsedNftSale;
 
-export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrderFulfilledEvent> {
-  protected _eventName = 'OrderFulfilled';
+export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumber: number, events: SeaportOrderFulfilledEvent[]} > {
+  public readonly eventName  = 'OrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
@@ -16,7 +16,7 @@ export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrder
     this._eventFilter = contract.filters.OrderFulfilled();
   }
   
-  protected async decodeLog(args: Event[]): Promise<SeaportOrderFulfilledEvent | null> {
+  protected async decodeLog(args: Event[]): Promise<{ blockNumber: number, events: SeaportOrderFulfilledEvent[]} | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;
     }
@@ -99,7 +99,7 @@ export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrder
     const txHash = event.transactionHash;
 
     const block = await this._blockProvider.getBlock(event.blockNumber);
-    const res: PreParsedNftSale = {
+    const res: SeaportOrderFulfilledEvent = {
       chainId: ChainId.Mainnet,
       txHash,
       blockNumber: block.number,
@@ -115,9 +115,9 @@ export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrder
       tokenId: ''
     };
 
-    const saleOrders: PreParsedNftSale[] = [];
+    const saleOrders: SeaportOrderFulfilledEvent[] = [];
     for (const nft of soldNfts) {
-      const saleOrder: PreParsedNftSale = {
+      const saleOrder: SeaportOrderFulfilledEvent = {
         ...res,
         seller: nft.seller,
         buyer: nft.buyer,
@@ -127,6 +127,9 @@ export class SeaportOrderFulfilledListener extends ContractListener<SeaportOrder
       saleOrders.push(saleOrder);
     }
 
-    return saleOrders;
+    return {
+      blockNumber: event.blockNumber,
+      events: saleOrders
+    };
   }
 }

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { ContractListener, ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
 import { BlockProvider } from '../models/block-provider';
+import { DbSyncedContractEvent } from './db-synced-contract.abstract';
 
 export abstract class Contract {
   protected contract: ethers.Contract;
@@ -15,7 +16,7 @@ export abstract class Contract {
     this.contract = new ethers.Contract(address, abi, provider);
   }
 
-  private _off?: () => void;
+  protected _off?: () => void;
 
   public start() {
     const off = this.registerListeners(ContractListenerEvent.EventOccurred);
@@ -34,13 +35,22 @@ export abstract class Contract {
     }
   }
 
-  public async backfill(fromBlock: number, toBlock?: number) {
+  public async backfill(data: { [eventName: string]: DbSyncedContractEvent }) {
     const off = this.registerListeners(ContractListenerEvent.BackfillEvent);
 
-    const promises = this._listeners.map((item) => item.backfill(fromBlock, toBlock));
+    const promises = this._listeners.map(async (listener) => {
+      const listenerData = data[listener.eventName];
+      let fromBlock = listenerData?.lastBlockUpdated;
+      if (!fromBlock) {
+        fromBlock = await this.contract.provider.getBlockNumber();
+      }
+      return listener.backfill(fromBlock);
+    });
 
-    await Promise.all(promises);
+    const results = await Promise.all(promises);
     off();
+
+    return results;
   }
 
   protected abstract registerListeners(event: ContractListenerEvent): () => void;

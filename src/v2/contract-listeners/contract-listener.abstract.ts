@@ -15,15 +15,15 @@ export interface Events<T> {
   [ContractListenerEvent.BackfillEvent]: T;
 }
 
-export abstract class ContractListener<DecodedLogType> {
+export abstract class ContractListener<DecodedLogType extends { blockNumber: number }> {
   protected _eventEmitter: EventEmitter;
   protected _logPaginator: LogPaginator;
   protected _cancelListener?: () => void;
 
   /**
-   * identifier for the event 
+   * identifier for the event
    */
-  protected abstract _eventName: string;
+  public readonly abstract eventName: string;
   protected abstract _eventFilter: ethers.EventFilter;
 
   protected get _thunkedLogRequest() {
@@ -58,15 +58,23 @@ export abstract class ContractListener<DecodedLogType> {
       toBlock: toBlock ?? 'latest',
       returnType: 'generator'
     })) as Generator<Promise<HistoricalLogsChunk>, void, unknown>;
-
+    let updatedToBlock = fromBlock;
     for await (const chunk of events) {
       for (const event of chunk.events) {
-        const decoded = await this.decodeLog([event]);
-        if (decoded != null) {
-          this._emit(ContractListenerEvent.BackfillEvent, decoded);
+        try {
+          const decoded = await this.decodeLog([event]);
+          if (decoded != null) {
+            if (decoded.blockNumber > updatedToBlock) {
+              updatedToBlock = decoded.blockNumber;
+            }
+            this._emit(ContractListenerEvent.BackfillEvent, decoded);
+          }
+        } catch (err) {
+          console.error(`Failed to decode log `, err);
         }
       }
     }
+    return { highestBlockReached: updatedToBlock, fromBlock, name: this.eventName };
   }
 
   on<Event extends ContractListenerEvent>(

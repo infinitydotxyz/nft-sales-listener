@@ -8,7 +8,7 @@ import { ContractListener } from './contract-listener.abstract';
 export type TakeEvent = PreParsedInfinityNftSale & { orderHash: string };
 
 export class TakeListener extends ContractListener<TakeEvent> {
-  protected _eventName = 'TakeOrderFulfilled';
+  public readonly eventName = 'TakeOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {

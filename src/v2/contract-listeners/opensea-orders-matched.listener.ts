@@ -21,8 +21,8 @@ interface TokenInfo {
   tokenType: string;
 }
 
-export class OpenSeaOrdersMatchedListener extends ContractListener<OpenSeaOrdersMatchedEvent[]> {
-  protected _eventName = 'OrdersMatched';
+export class OpenSeaOrdersMatchedListener extends ContractListener<{ blockNumber: number, events: OpenSeaOrdersMatchedEvent[] }> {
+  public readonly eventName  = 'OrdersMatched';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
@@ -30,7 +30,7 @@ export class OpenSeaOrdersMatchedListener extends ContractListener<OpenSeaOrders
     this._eventFilter = contract.filters.OrdersMatched();
   }
   
-  async decodeLog(args: ethers.Event[]): Promise<OpenSeaOrdersMatchedEvent[] | null> {
+  async decodeLog(args: ethers.Event[]): Promise<{ blockNumber: number, events: OpenSeaOrdersMatchedEvent[] } | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;
     }
@@ -58,7 +58,10 @@ export class OpenSeaOrdersMatchedListener extends ContractListener<OpenSeaOrders
       response as ethers.utils.BytesLike
     ) as any;
     const saleOrders = this.handleAtomicMatch(decodedResponse, txHash, block);
-    return saleOrders;
+    return {
+      blockNumber: event.blockNumber,
+      events: saleOrders
+    }
   }
 
   private handleAtomicMatch(
