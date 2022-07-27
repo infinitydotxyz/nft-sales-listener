@@ -40,12 +40,6 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       if (res) {
         events.push(res);
       }
-      if (
-        trimLowerCase(log.transactionHash) ===
-        trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335')
-      ) {
-        console.log(JSON.stringify(res, null, 2));
-      } // TODO remove
     }
     if (events.length === 0) {
       return null;
