@@ -1,13 +1,14 @@
 import { ChainId, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 import { ETHEREUM_WETH_ADDRESS, NULL_ADDRESS, trimLowerCase } from '@infinityxyz/lib/utils';
-import { BigNumber, ethers, Event } from 'ethers';
-import { PreParsedNftSale, SeaportReceivedAmount, SeaportSoldNft } from 'types';
+import { BigNumber, ethers } from 'ethers';
+import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo, SeaportReceivedAmount, SeaportSoldNft } from 'types';
 import { BlockProvider } from 'v2/models/block-provider';
-import { ContractListener } from './contract-listener.abstract';
+import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
-export type SeaportOrderFulfilledEvent = PreParsedNftSale;
 
-export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumber: number, events: SeaportOrderFulfilledEvent[]} > {
+export type SeaportOrderFulfilledEvent = { blockNumber: number, events: PreParsedNftSale[]};
+export type SeaportOrderFulfilledBundleEvent = { blockNumber: number, events: PreParsedMultipleNftSale };
+export class SeaportOrderFulfilledListener extends ContractListenerBundle<SeaportOrderFulfilledBundleEvent, SeaportOrderFulfilledEvent> {
   public readonly eventName  = 'OrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
@@ -16,11 +17,56 @@ export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumbe
     this._eventFilter = contract.filters.OrderFulfilled();
   }
   
-  protected async decodeLog(args: Event[]): Promise<{ blockNumber: number, events: SeaportOrderFulfilledEvent[]} | null> {
-    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+  protected async decodeLogs(logs: ethers.providers.Log[]):  Promise<SeaportOrderFulfilledBundleEvent| null> {
+    const events = [];
+    const blockNumber = logs.find((item) => !!item.blockNumber)?.blockNumber;
+    if (!blockNumber) {
       return null;
     }
-    const event: ethers.Event = args[args.length - 1];
+    for(const log of logs) {
+      const res = await this.decodeSingleLog(log);
+      if(res && res.events.length >= 0) {
+        events.push(...res.events);
+      } 
+    }
+    if(events.length === 0) {
+      return null;
+    }
+    const firstItem = events[0];
+    const initial: PreParsedMultipleNftSale = {
+      chainId: firstItem.chainId,
+      txHash: firstItem.txHash,
+      blockNumber: firstItem.blockNumber,
+      timestamp: firstItem.timestamp,
+      source: firstItem.source,
+      paymentToken: firstItem.paymentToken,
+      sales: []
+    };
+    const multipleNftSales = events.reduce((acc, item) => {
+      if(!item) {
+        return acc;
+      }
+      const saleInfo: PreParsedNftSaleInfo = {
+        collectionAddress: item.collectionAddress,
+        tokenId: item.tokenId,
+        price: item.price,
+        buyer: item.buyer,
+        seller: item.seller,
+        quantity: item.quantity,
+        tokenStandard: item.tokenStandard,
+      }
+      acc.sales.push(saleInfo);
+      return acc;
+    }, initial);
+
+    return { blockNumber, events: multipleNftSales };
+  }
+
+  protected async decodeSingleLog(log: ethers.providers.Log): Promise<SeaportOrderFulfilledEvent | null> {
+    if (!log) {
+      return null;
+    }
+    const event = this._contract.interface.parseLog(log);
     const eventData = event.args;
     if (eventData?.length !== 6) {
       return null;
@@ -96,10 +142,10 @@ export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumbe
       totalAmount = totalAmount.add(amount.amount);
     }
 
-    const txHash = event.transactionHash;
+    const txHash = log.transactionHash;
 
-    const block = await this._blockProvider.getBlock(event.blockNumber);
-    const res: SeaportOrderFulfilledEvent = {
+    const block = await this._blockProvider.getBlock(log.blockNumber);
+    const res: PreParsedNftSale = {
       chainId: ChainId.Mainnet,
       txHash,
       blockNumber: block.number,
@@ -115,9 +161,9 @@ export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumbe
       tokenId: ''
     };
 
-    const saleOrders: SeaportOrderFulfilledEvent[] = [];
+    const saleOrders: PreParsedNftSale[] = [];
     for (const nft of soldNfts) {
-      const saleOrder: SeaportOrderFulfilledEvent = {
+      const saleOrder: PreParsedNftSale = {
         ...res,
         seller: nft.seller,
         buyer: nft.buyer,
@@ -128,7 +174,7 @@ export class SeaportOrderFulfilledListener extends ContractListener<{ blockNumbe
     }
 
     return {
-      blockNumber: event.blockNumber,
+      blockNumber: log.blockNumber,
       events: saleOrders
     };
   }

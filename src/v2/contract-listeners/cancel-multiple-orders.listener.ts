@@ -1,7 +1,7 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
 import { BlockProvider } from 'v2/models/block-provider';
-import { ContractListener } from './contract-listener.abstract';
+import { ContractListener, Events } from './contract-listener.abstract';
 
 export type CancelMultipleOrdersEvent = {
   user: string;
@@ -10,7 +10,7 @@ export type CancelMultipleOrdersEvent = {
   txHash: string;
 };
 
-export class CancelMultipleOrdersListener extends ContractListener<CancelMultipleOrdersEvent> {
+export class CancelMultipleOrdersListener extends ContractListener<CancelMultipleOrdersEvent, Events<CancelMultipleOrdersEvent>> {
   public readonly eventName  = 'CancelMultipleOrders';
   protected _eventFilter: ethers.EventFilter;
 

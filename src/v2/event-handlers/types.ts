@@ -1,33 +1,37 @@
-import { PreParsedNftSale } from "types";
-import { CancelAllOrdersEvent } from "v2/contract-listeners/cancel-all-orders.listener";
-import { CancelMultipleOrdersEvent } from "v2/contract-listeners/cancel-multiple-orders.listener";
-import { MatchEvent } from "v2/contract-listeners/match.listener";
-import { TakeEvent } from "v2/contract-listeners/take.listener";
+import { PreParsedMultipleNftSale } from 'types';
+import { CancelAllOrdersEvent } from 'v2/contract-listeners/cancel-all-orders.listener';
+import { CancelMultipleOrdersEvent } from 'v2/contract-listeners/cancel-multiple-orders.listener';
+import { MatchOrderBundleEvent } from 'v2/contract-listeners/match-order.listener';
+import { TakeOrderBundleEvent } from 'v2/contract-listeners/take-order.listener';
 
 export interface CancelAllOrdersHandler {
-    cancelAllOrders(event: CancelAllOrdersEvent): Promise<void>;
+  cancelAllOrders(event: CancelAllOrdersEvent): Promise<void>;
 }
 
 export interface CancelMultipleOrdersHandler {
-    cancelMultipleOrders(event: CancelMultipleOrdersEvent): Promise<void>;
+  cancelMultipleOrders(event: CancelMultipleOrdersEvent): Promise<void>;
 }
 
 export interface MatchOrdersHandler {
-    matchEvent(event: MatchEvent): Promise<void>;
+  matchOrderEvent(event: MatchOrderBundleEvent): Promise<void>;
 }
 
 export interface TakeOrdersHandler {
-    takeEvent(event: TakeEvent): Promise<void>;
+  takeOrderEvent(event: TakeOrderBundleEvent): Promise<void>;
 }
 
-export interface SaleHandler { 
-    nftSalesEvent(sales: PreParsedNftSale[]): Promise<void>;
+export interface SaleHandler {
+  nftSalesEvent(sales: PreParsedMultipleNftSale): Promise<void>;
 }
 
-export interface EventHandler extends CancelAllOrdersHandler, CancelMultipleOrdersHandler, MatchOrdersHandler, TakeOrdersHandler, SaleHandler {};
+export interface EventHandler
+  extends CancelAllOrdersHandler,
+    CancelMultipleOrdersHandler,
+    MatchOrdersHandler,
+    TakeOrdersHandler,
+    SaleHandler {}
 
 export enum OrderType {
-    Listing = 'listing',
-    Offer = 'offer'
-  }
-  
+  Listing = 'listing',
+  Offer = 'offer'
+}

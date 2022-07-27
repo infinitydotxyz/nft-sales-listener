@@ -9,7 +9,7 @@ export class OrderItem {
     static readonly OWNER_INHERITS_OFFERS = true;
   
     static getImpactedOrderItemsQueries(
-      order: PreParsedInfinityNftSale,
+      order: Pick<PreParsedInfinityNftSale, 'buyer' | 'seller'>,
       orderHash: string
     ): Record<string, FirebaseFirestore.Query<FirestoreOrderItem>> {
       const tokenQuery = firebase.db
@@ -55,7 +55,7 @@ export class OrderItem {
       return this.orderItem.takerAddress;
     }
   
-    orderItemMatches(sale: PreParsedInfinityNftSale): boolean {
+    orderItemMatches(sale: Pick<PreParsedInfinityNftSale, 'orderItems' | 'seller' | 'buyer'>): boolean {
       let correctToken = false;
       for (const orderItem of sale.orderItems) {
         if (orderItem.collection === this.orderItem.collectionAddress) {
@@ -93,7 +93,7 @@ export class OrderItem {
       return correctToken && takerShouldBeUpdated;
     }
   
-    async handleOrderItemSale(sale: PreParsedInfinityNftSale): Promise<FirestoreOrderItem> {
+    async handleOrderItemSale(sale: Pick<PreParsedInfinityNftSale, 'buyer'| 'seller' | 'orderItems'>): Promise<FirestoreOrderItem> {
       this.orderItem.orderStatus = OBOrderStatus.Invalid;
   
       if (!this.orderItemMatches(sale)) {

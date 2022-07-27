@@ -19,7 +19,7 @@ export interface DbSyncedContractEvent {
 }
 
 export abstract class DbSyncedContract extends Contract {
-  protected abstract _listeners: ContractListener<any>[];
+  protected abstract _listeners: ContractListener<any, any>[];
   protected abstract registerListeners(event: ContractListenerEvent): () => void;
 
   constructor(
@@ -33,13 +33,16 @@ export abstract class DbSyncedContract extends Contract {
     super(address, provider, abi, blockProvider);
   }
 
-  public async start() {
+  public async sync() {
     /**
      * start listening for events
      */
     const off = this.registerListeners(ContractListenerEvent.EventOccurred);
     this._listeners.map((item) => item.start());
 
+    /**
+     * start backfilling
+     */
     await this._startBackfill();
     const intervalOff = await this._scheduleIntervalUpdates();
 
@@ -81,7 +84,7 @@ export abstract class DbSyncedContract extends Contract {
       updatedAt: Date.now(),
       events: {}
     };
-    const handler = (listener: ContractListener<any>, blockNumber: number) => {
+    const handler = (listener: ContractListener<any, any>, blockNumber: number) => {
       const firstBlock = contractData.events[listener.eventName]?.firstBlock ?? blockNumber;
       let lastBlockUpdated = contractData.events[listener.eventName]?.lastBlockUpdated;
       if (!lastBlockUpdated || lastBlockUpdated < blockNumber) {

@@ -56,7 +56,7 @@ export class Order {
       ) as FirebaseFirestore.CollectionReference<FirestoreOrderItem>;
     }
   
-    public async handleSale(sale: PreParsedInfinityNftSale): Promise<FirestoreOrder> {
+    public async handleSale(sale: Pick<PreParsedInfinityNftSale, 'buyer' | 'seller' | 'orderItems'>): Promise<FirestoreOrder> {
       const orderItems = await this.getOrderItems();
       for (const orderItem of orderItems) {
         await orderItem.handleOrderItemSale(sale);

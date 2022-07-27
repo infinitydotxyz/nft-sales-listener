@@ -2,11 +2,12 @@ import { ChainId, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core'
 import { sleep } from '@infinityxyz/lib/utils';
 import { MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from 'constants/wyvern-constants';
 import { ethers } from 'ethers';
-import { PreParsedNftSale } from 'types';
+import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo } from 'types';
 import { BlockProvider } from 'v2/models/block-provider';
-import { ContractListener } from './contract-listener.abstract';
+import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
-export type OpenSeaOrdersMatchedEvent = PreParsedNftSale;
+export type OpenSeaOrdersMatchedEvent ={ blockNumber: number; events: PreParsedNftSale[] };
+export type OpenSeaOrdersMatchedBundleEvent = { blockNumber: number; events: PreParsedMultipleNftSale };
 
 type DecodedAtomicMatchInputs = {
   calldataBuy: string;
@@ -21,21 +22,70 @@ interface TokenInfo {
   tokenType: string;
 }
 
-export class OpenSeaOrdersMatchedListener extends ContractListener<{ blockNumber: number, events: OpenSeaOrdersMatchedEvent[] }> {
-  public readonly eventName  = 'OrdersMatched';
+export class OpenSeaOrdersMatchedListener extends ContractListenerBundle<
+  OpenSeaOrdersMatchedBundleEvent,
+  OpenSeaOrdersMatchedEvent
+> {
+  public readonly eventName = 'OrdersMatched';
   protected _eventFilter: ethers.EventFilter;
 
   constructor(contract: ethers.Contract, blockProvider: BlockProvider) {
     super(contract, blockProvider);
     this._eventFilter = contract.filters.OrdersMatched();
   }
-  
-  async decodeLog(args: ethers.Event[]): Promise<{ blockNumber: number, events: OpenSeaOrdersMatchedEvent[] } | null> {
-    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+
+  protected async decodeLogs(
+    logs: ethers.Event[]
+  ): Promise<{ blockNumber: number; events: PreParsedMultipleNftSale } | null> {
+    const events = [];
+    const blockNumber = logs.find((item) => !!item.blockNumber)?.blockNumber;
+    if (!blockNumber) {
       return null;
     }
-    const event: ethers.Event = args[args.length - 1];
-    const txHash: string = event?.transactionHash;
+    for (const log of logs) {
+      const res = await this.decodeSingleLog(log);
+      if (res && res.events.length >= 0) {
+        events.push(...res.events);
+      }
+    }
+    if (events.length === 0) {
+      return null;
+    }
+    const firstItem = events[0];
+    const initial: PreParsedMultipleNftSale = {
+      chainId: firstItem.chainId,
+      txHash: firstItem.txHash,
+      blockNumber: firstItem.blockNumber,
+      timestamp: firstItem.timestamp,
+      source: firstItem.source,
+      paymentToken: firstItem.paymentToken,
+      sales: []
+    };
+    const multipleNftSales = events.reduce((acc, item) => {
+      if (!item) {
+        return acc;
+      }
+      const saleInfo: PreParsedNftSaleInfo = {
+        collectionAddress: item.collectionAddress,
+        tokenId: item.tokenId,
+        price: item.price,
+        buyer: item.buyer,
+        seller: item.seller,
+        quantity: item.quantity,
+        tokenStandard: item.tokenStandard
+      };
+      acc.sales.push(saleInfo);
+      return acc;
+    }, initial);
+
+    return { blockNumber, events: multipleNftSales };
+  }
+
+  async decodeSingleLog(log: ethers.providers.Log): Promise<OpenSeaOrdersMatchedEvent | null> {
+    if (!log) {
+      return null;
+    }
+    const txHash: string = log?.transactionHash;
     if (!txHash) {
       return null;
     }
@@ -52,23 +102,23 @@ export class OpenSeaOrdersMatchedListener extends ContractListener<{ blockNumber
       }
       break;
     }
-    const block = await this._blockProvider.getBlock(event.blockNumber);
+    const block = await this._blockProvider.getBlock(log.blockNumber);
     const decodedResponse: DecodedAtomicMatchInputs = this._contract.interface.decodeFunctionData(
       'atomicMatch_',
       response as ethers.utils.BytesLike
     ) as any;
     const saleOrders = this.handleAtomicMatch(decodedResponse, txHash, block);
     return {
-      blockNumber: event.blockNumber,
+      blockNumber: log.blockNumber,
       events: saleOrders
-    }
+    };
   }
 
   private handleAtomicMatch(
     inputs: DecodedAtomicMatchInputs,
     txHash: string,
     block: ethers.providers.Block
-  ): OpenSeaOrdersMatchedEvent[] {
+  ): PreParsedNftSale[] {
     const addrs: string[] = inputs.addrs;
     const saleAddress: string = addrs[11];
 

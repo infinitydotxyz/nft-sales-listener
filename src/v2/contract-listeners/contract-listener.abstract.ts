@@ -1,13 +1,15 @@
+
 import { ethers } from 'ethers';
 import { Contract } from 'ethers/lib/ethers';
-import EventEmitter from 'events';
+import { Event, EventEmitter } from 'v2/models/event-emitter';
 import { BlockProvider } from '../models/block-provider';
 import { LogPaginator } from '../models/log-paginator';
 import { HistoricalLogsChunk } from '../models/log-paginator.types';
 
 export enum ContractListenerEvent {
   EventOccurred = 'eventOccurred',
-  BackfillEvent = 'backfillEvent'
+  BackfillEvent = 'backfillEvent',
+
 }
 
 export interface Events<T> {
@@ -15,15 +17,26 @@ export interface Events<T> {
   [ContractListenerEvent.BackfillEvent]: T;
 }
 
-export abstract class ContractListener<DecodedLogType extends { blockNumber: number }> {
-  protected _eventEmitter: EventEmitter;
+export abstract class ContractListener<DecodedLogType extends { blockNumber: number }, EventTypes extends Record<ContractListenerEvent, any>> {
+  protected _eventEmitter: EventEmitter<EventTypes> = new EventEmitter();
   protected _logPaginator: LogPaginator;
   protected _cancelListener?: () => void;
+
+  public on<E extends Event<EventTypes>>(event: E, handler: (e: EventTypes[E]) => void) {
+    const off = this._eventEmitter.on(event, handler);
+    return () => {
+      off();
+    }
+  }
+
+  public off<E extends Event<EventTypes>>(event: E, handler: (e: EventTypes[E]) => void) {
+    this._eventEmitter.off(event, handler);
+  }
 
   /**
    * identifier for the event
    */
-  public readonly abstract eventName: string;
+  public abstract readonly eventName: string;
   protected abstract _eventFilter: ethers.EventFilter;
 
   protected get _thunkedLogRequest() {
@@ -67,7 +80,7 @@ export abstract class ContractListener<DecodedLogType extends { blockNumber: num
             if (decoded.blockNumber > updatedToBlock) {
               updatedToBlock = decoded.blockNumber;
             }
-            this._emit(ContractListenerEvent.BackfillEvent, decoded);
+            this._eventEmitter._emit(ContractListenerEvent.BackfillEvent, decoded);
           }
         } catch (err) {
           console.error(`Failed to decode log `, err);
@@ -77,32 +90,11 @@ export abstract class ContractListener<DecodedLogType extends { blockNumber: num
     return { highestBlockReached: updatedToBlock, fromBlock, name: this.eventName };
   }
 
-  on<Event extends ContractListenerEvent>(
-    event: ContractListenerEvent,
-    handler: (e: Events<DecodedLogType>[Event]) => void
-  ): () => void {
-    this._eventEmitter.on(event, handler);
-    return () => {
-      this._eventEmitter.off(event, handler);
-    };
-  }
-
-  off<Event extends ContractListenerEvent>(
-    event: ContractListenerEvent,
-    handler: (e: Events<DecodedLogType>[Event]) => void
-  ): void {
-    this._eventEmitter.off(event, handler);
-  }
-
-  protected _emit<Event extends keyof Events<DecodedLogType>>(event: Event, data: Events<DecodedLogType>[Event]): void {
-    this._eventEmitter.emit(event as string, data);
-  }
-
-  private _start() {
+  protected _start() {
     const handler = async (...args: ethers.Event[]) => {
       const decoded = await this.decodeLog(args);
       if (decoded != null) {
-        this._emit(ContractListenerEvent.EventOccurred, decoded);
+        this._eventEmitter._emit(ContractListenerEvent.EventOccurred, decoded);
       }
     };
     this._contract.on(this._eventFilter, handler);

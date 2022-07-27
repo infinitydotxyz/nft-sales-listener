@@ -5,6 +5,7 @@ import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchange
 import { ContractFactory } from "./contracts/contract.factory";
 import { EventHandler } from "./event-handlers/handler";
 import { CollectionProvider } from "./models/collection-provider";
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 function main() {
     const contractFactory = new ContractFactory(providers, firebase);
@@ -15,20 +16,33 @@ function main() {
     const seaportExchangeMainnet = contractFactory.create(seaportExchangeMainnetDesc, handler);
 
 
-    infinityExchangeMainnet.start().then(() => {
+    infinityExchangeMainnet.sync().then(() => {
         console.log("Infinity Exchange Mainnet backfilled");
     }).catch((err) => {
         console.error(err);
     })
-    wyvernExchangeMainnet.start().then(() => {
+    wyvernExchangeMainnet.sync().then(() => {
         console.log("Wyvern Exchange Mainnet backfilled");
     }).catch((err) => {
         console.error(err);
     });
-    seaportExchangeMainnet.start().then(() => {
+    seaportExchangeMainnet.sync().then(() => {
         console.log("Seaport Exchange Mainnet backfilled");
     }).catch((err) => {
         console.error(err);
+    });
+}
+
+async function getSaleByTx() {
+    const hash = trimLowerCase('0xf5e6acc34f6f3dafbc938a847fba613f832c40dab35810218c475624a6f45018');
+
+    const snaps = await firebase.db.collection('sales').where('txHash', '==', hash).get();
+    snaps.docs.forEach((doc) => {
+        const id = doc.id;
+        const sale = doc.data();
+
+        console.log(`Found sale with hash: ${hash} Id: ${id}`);
+        console.log(JSON.stringify(sale, null, 2));
     });
 }
 

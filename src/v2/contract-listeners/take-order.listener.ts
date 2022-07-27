@@ -1,13 +1,14 @@
 import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
-import { PreParsedInfinityNftSale } from 'types';
+import { PreParsedInfinityNftSale, PreParseInfinityMultipleNftSaleTakeOrder, PreParseInfinityNftSaleInfoTakeOrder } from 'types';
 import { BlockProvider } from '../models/block-provider';
-import { ContractListener } from './contract-listener.abstract';
+import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
-export type TakeEvent = PreParsedInfinityNftSale & { orderHash: string };
+export type TakeOrderEvent = PreParsedInfinityNftSale & { orderHash: string };
+export type TakeOrderBundleEvent = { blockNumber: number; events: PreParseInfinityMultipleNftSaleTakeOrder };
 
-export class TakeListener extends ContractListener<TakeEvent> {
+export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEvent, TakeOrderEvent> {
   public readonly eventName = 'TakeOrderFulfilled';
   protected _eventFilter: ethers.EventFilter;
 
@@ -16,11 +17,59 @@ export class TakeListener extends ContractListener<TakeEvent> {
     this._eventFilter = contract.filters.TakeOrderFulfilled();
   }
 
-  async decodeLog(args: ethers.Event[]): Promise<TakeEvent | null> {
-    if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
+  async decodeLogs(
+    logs: ethers.Event[]
+  ): Promise<TakeOrderBundleEvent | null> {
+    const events = [];
+    const blockNumber = logs.find((item) => !!item.blockNumber)?.blockNumber;
+    if (!blockNumber) {
       return null;
     }
-    const event: ethers.Event = args[args.length - 1];
+    for (const log of logs) {
+      const res = await this.decodeSingleLog(log);
+      if (res) {
+        events.push(res);
+      }
+    }
+    if (events.length === 0) {
+      return null;
+    }
+    const firstItem = events[0];
+    const initial: PreParseInfinityMultipleNftSaleTakeOrder = {
+      chainId: firstItem.chainId,
+      txHash: firstItem.txHash,
+      blockNumber: firstItem.blockNumber,
+      timestamp: firstItem.timestamp,
+      source: firstItem.source,
+      complication: firstItem.complication,
+      sales: []
+    };
+    const multipleNftSales = events.reduce((acc, item) => {
+      if (!item) {
+        return acc;
+      }
+      const saleInfo: PreParseInfinityNftSaleInfoTakeOrder = {
+        paymentToken: item.paymentToken,
+        price: item.price,
+        buyer: item.buyer,
+        seller: item.seller,
+        quantity: item.quantity,
+        tokenStandard: item.tokenStandard,
+        orderItems: item.orderItems,
+        orderHash: item.orderHash
+      };
+      acc.sales.push(saleInfo);
+      return acc;
+    }, initial);
+
+    return { blockNumber, events: multipleNftSales };
+  }
+
+  async decodeSingleLog(log: ethers.providers.Log): Promise<TakeOrderEvent | null> {
+    if (!log) {
+      return null;
+    }
+    const event = this._contract.interface.parseLog(log);
     const eventData = event.args;
     if (eventData?.length !== 7) {
       return null;
@@ -60,9 +109,9 @@ export class TakeListener extends ContractListener<TakeEvent> {
       orderItems.push(chainNFT);
     }
 
-    const txHash = event.transactionHash;
-    const block = await this._blockProvider.getBlock(event.blockNumber);
-    const res: TakeEvent = {
+    const txHash = log.transactionHash;
+    const block = await this._blockProvider.getBlock(log.blockNumber);
+    const res: TakeOrderEvent = {
       chainId: ChainId.Mainnet,
       txHash,
       blockNumber: block.number,

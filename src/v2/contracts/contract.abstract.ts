@@ -5,7 +5,7 @@ import { DbSyncedContractEvent } from './db-synced-contract.abstract';
 
 export abstract class Contract {
   protected contract: ethers.Contract;
-  protected abstract _listeners: ContractListener<any>[];
+  protected abstract _listeners: ContractListener<any, any>[];
 
   constructor(
     address: string,

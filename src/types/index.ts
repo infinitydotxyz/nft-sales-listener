@@ -15,21 +15,81 @@ export interface PreParsedNftSale {
   tokenStandard: TokenStandard;
 }
 
+export interface PreParsedNftSaleInfo {
+  collectionAddress: string;
+  tokenId: string;
+  price: BigInt;
+  buyer: string;
+  seller: string;
+  quantity: number;
+  tokenStandard: TokenStandard;
+}
+
+export interface PreParsedMultipleNftSale {
+  paymentToken: string;
+  chainId: string;
+  txHash: string;
+  blockNumber: number;
+  timestamp: number;
+  source: SaleSource;
+  sales: PreParsedNftSaleInfo[];
+}
+
 export interface PreParsedInfinityNftSale {
   chainId: string;
   txHash: string;
   blockNumber: number;
   timestamp: number;
-  price: BigInt;
+  complication: string;
+  source: SaleSource;
   paymentToken: string;
+  price: BigInt;
   buyer: string;
   seller: string;
   quantity: number;
-  source: SaleSource;
   tokenStandard: TokenStandard;
-  complication: string;
   orderItems: ChainNFTs[];
 }
+
+export interface PreParsedInfinityNftSaleInfo {
+  paymentToken: string;
+  price: BigInt;
+  buyer: string;
+  seller: string;
+  quantity: number;
+  tokenStandard: TokenStandard;
+  orderItems: ChainNFTs[];
+}
+
+export interface PreParsedInfinityNftSaleInfoMatchOrder extends PreParsedInfinityNftSaleInfo {
+  buyOrderHash: string;
+  sellOrderHash: string;
+}
+
+export interface PreParseInfinityNftSaleInfoTakeOrder extends PreParsedInfinityNftSaleInfo {
+  orderHash: string;
+}
+
+export interface PreParseInfinityMultipleNftSaleBase {
+  chainId: string;
+  txHash: string;
+  blockNumber: number;
+  timestamp: number;
+  complication: string;
+  source: SaleSource;
+}
+
+export interface PreParseInfinityMultipleNftSaleMatchOrder extends PreParseInfinityMultipleNftSaleBase {
+  sales: PreParsedInfinityNftSaleInfoMatchOrder[];
+}
+
+export interface PreParseInfinityMultipleNftSaleTakeOrder extends PreParseInfinityMultipleNftSaleBase {
+  sales: PreParseInfinityNftSaleInfoTakeOrder[];
+}
+
+export type PreParseInfinityMultipleNftSale =
+  | PreParseInfinityMultipleNftSaleMatchOrder
+  | PreParseInfinityMultipleNftSaleTakeOrder;
 
 export interface SeaportSoldNft {
   tokenAddress: string;
