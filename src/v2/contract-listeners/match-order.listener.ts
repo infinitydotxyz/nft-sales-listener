@@ -60,7 +60,9 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
         tokenStandard: item.tokenStandard,
         orderItems: item.orderItems,
         buyOrderHash: item.buyOrderHash,
-        sellOrderHash: item.sellOrderHash
+        sellOrderHash: item.sellOrderHash,
+        protocolFeeWei: item.protocolFeeWei,
+        protocolFeeBPS: item.protocolFeeBPS
       };
       acc.sales.push(saleInfo);
       return acc;
@@ -143,7 +145,7 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
       orderItems,
       buyOrderHash,
       sellOrderHash,
-      protocolFee: feesPaidWei,
+      protocolFeeWei: feesPaidWei.toString(),
       protocolFeeBPS: protocolFeeBPS
     };
     return res;

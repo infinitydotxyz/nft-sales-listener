@@ -72,7 +72,9 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
         quantity: item.quantity,
         tokenStandard: item.tokenStandard,
         orderItems: item.orderItems,
-        orderHash: item.orderHash
+        orderHash: item.orderHash,
+        protocolFeeWei: item.protocolFeeWei,
+        protocolFeeBPS: item.protocolFeeBPS
       };
       acc.sales.push(saleInfo);
       return acc;
@@ -152,7 +154,7 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
       buyer,
       orderItems,
       orderHash,
-      protocolFee: feesPaidWei,
+      protocolFeeWei: feesPaidWei.toString(),
       protocolFeeBPS: protocolFeeBPS
     };
     return res;

@@ -29,7 +29,7 @@ export class ProtocolFee {
     return {
       feesPaidWei,
       feePercent,
-      protocolFeeBPS: `${protocolFeeBPS}`
+      protocolFeeBPS: protocolFeeBPS
     }
   }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { ChainId, EtherscanLinkType, InfinityLinkType, NftSale, Token } from '@infinityxyz/lib/types/core';
+import { ChainId, EtherscanLinkType, ExternalNftSale, InfinityLinkType, InfinityNftSale, NftSale, NftSaleUnion, SaleSource, Token } from '@infinityxyz/lib/types/core';
 import { EventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core/OBOrder';
 import {
@@ -14,6 +14,7 @@ import {
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
 import Firebase from 'database/Firebase';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
+import { BigNumber } from 'ethers';
 import Providers from 'models/Providers';
 import {
   PreParsedInfinityNftSale,
@@ -309,11 +310,11 @@ export class EventHandler implements IEventHandler {
     }
   }
 
-  protected parseInfinityMultipleSaleOrder(preParsedSales: PreParseInfinityMultipleNftSale): NftSale[] {
-    const sales: NftSale[] = [];
+  protected parseInfinityMultipleSaleOrder(preParsedSales: PreParseInfinityMultipleNftSale): InfinityNftSale[] {
+    const sales: InfinityNftSale[] = [];
     for (const preParsedSale of preParsedSales.sales) {
       if (preParsedSale.paymentToken === NULL_ADDRESS || trimLowerCase(preParsedSale.paymentToken) === ETHEREUM_WETH_ADDRESS) {
-        const partialSale: Omit<NftSale, 'tokenId' | 'collectionAddress' | 'price' | 'quantity'> = {
+        const partialSale: Omit<InfinityNftSale, 'tokenId' | 'collectionAddress' | 'price' | 'quantity' | 'protocolFeeBPS' | 'protocolFee' | 'protocolFeeWei'> = {
           chainId: preParsedSales.chainId,
           txHash: trimLowerCase(preParsedSales.txHash),
           blockNumber: preParsedSales.blockNumber,
@@ -321,21 +322,26 @@ export class EventHandler implements IEventHandler {
           paymentToken: preParsedSale.paymentToken,
           buyer: trimLowerCase(preParsedSale.buyer),
           seller: trimLowerCase(preParsedSale.seller),
-          source: preParsedSales.source,
+          source: preParsedSales.source as SaleSource.Infinity,
           tokenStandard: preParsedSale.tokenStandard,
         }
 
         const totalPrice = convertWeiToEther(preParsedSale.price);
         const orderItemPrice = totalPrice / preParsedSale.orderItems.length;
+        const orderItemProtocolFee = convertWeiToEther(BigInt(preParsedSale.protocolFeeWei)) / preParsedSale.orderItems.length;
+        const orderItemProtocolFeeWei = BigNumber.from(preParsedSale.protocolFeeWei).div(preParsedSale.orderItems.length);
         for (const orderItem of preParsedSale.orderItems) {
           const collectionAddress = trimLowerCase(orderItem.collection);
           for (const token of orderItem.tokens) {
-            const sale: NftSale = {
+            const sale: InfinityNftSale = {
               ...partialSale,
               tokenId: token.tokenId,
               collectionAddress: collectionAddress,
-              price: orderItemPrice / token.numTokens,
+              price: orderItemPrice,
               quantity: token.numTokens,
+              protocolFeeBPS: preParsedSale.protocolFeeBPS,
+              protocolFee: orderItemProtocolFee,
+              protocolFeeWei: orderItemProtocolFeeWei.toString(),
             };
             sales.push(sale);
           }
@@ -355,7 +361,7 @@ export class EventHandler implements IEventHandler {
     const sales: NftSale[] = [];
     for (const sale of preParsedSale.sales) {
       const totalPrice = convertWeiToEther(sale.price);
-      const nftSale: NftSale = {
+      const nftSale: ExternalNftSale = {
         chainId: preParsedSale.chainId,
         txHash: trimLowerCase(preParsedSale.txHash),
         blockNumber: preParsedSale.blockNumber,
@@ -367,8 +373,8 @@ export class EventHandler implements IEventHandler {
         buyer: trimLowerCase(sale.buyer),
         seller: trimLowerCase(sale.seller),
         quantity: sale.quantity,
-        source: preParsedSale.source,
-        tokenStandard: sale.tokenStandard
+        source: preParsedSale.source as SaleSource.OpenSea | SaleSource.Seaport,
+        tokenStandard: sale.tokenStandard,
       };
       sales.push(nftSale);
     }
