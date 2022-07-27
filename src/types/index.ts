@@ -38,6 +38,7 @@ export interface PreParsedMultipleNftSale {
 export interface PreParsedInfinityNftSale {
   chainId: string;
   txHash: string;
+  transactionIndex: number;
   blockNumber: number;
   timestamp: number;
   complication: string;

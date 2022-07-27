@@ -22,6 +22,7 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
     logs: ethers.Event[]
   ): Promise<MatchOrderBundleEvent | null> {
     const events = [];
+    
     const blockNumber = logs.find((item) => !!item.blockNumber)?.blockNumber;
     if (!blockNumber) {
       return null;
@@ -62,8 +63,9 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
       };
       acc.sales.push(saleInfo);
       return acc;
-    }, initial);
 
+      
+    }, initial);
     return { blockNumber, events: multipleNftSales };
   }
 
@@ -120,6 +122,7 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
       blockNumber: block.number,
       timestamp: block.timestamp * 1000,
       price: amount.toBigInt(),
+      transactionIndex: log.transactionIndex,
       complication,
       paymentToken: currency,
       quantity,

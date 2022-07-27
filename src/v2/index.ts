@@ -24,20 +24,20 @@ function main() {
     }).catch((err) => {
         console.error(err);
     })
-    wyvernExchangeMainnet.sync().then(() => {
-        console.log("Wyvern Exchange Mainnet backfilled");
-    }).catch((err) => {
-        console.error(err);
-    });
-    seaportExchangeMainnet.sync().then(() => {
-        console.log("Seaport Exchange Mainnet backfilled");
-    }).catch((err) => {
-        console.error(err);
-    });
+    // wyvernExchangeMainnet.sync().then(() => {
+    //     console.log("Wyvern Exchange Mainnet backfilled");
+    // }).catch((err) => {
+    //     console.error(err);
+    // });
+    // seaportExchangeMainnet.sync().then(() => {
+    //     console.log("Seaport Exchange Mainnet backfilled");
+    // }).catch((err) => {
+    //     console.error(err);
+    // });
 }
 
 async function getSaleByTx() {
-    const hash = trimLowerCase('0xf5e6acc34f6f3dafbc938a847fba613f832c40dab35810218c475624a6f45018');
+    const hash = trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335');
 
     const snaps = await firebase.db.collection('sales').where('txHash', '==', hash).get();
     snaps.docs.forEach((doc) => {
@@ -47,6 +47,9 @@ async function getSaleByTx() {
         console.log(`Found sale with hash: ${hash} Id: ${id}`);
         console.log(JSON.stringify(sale, null, 2));
     });
+
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    console.log(`Found ${snaps.docs.length} sales with hash: ${hash}`);
 }
 
 void main();
