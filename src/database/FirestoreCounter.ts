@@ -1,5 +1,5 @@
 import { logger } from 'container';
-import * as uuid from 'uuid';
+import { nanoid } from 'nanoid'
 import firebaseAdmin from 'firebase-admin';
 
 export class FirestoreDistributedCounter {
@@ -23,7 +23,7 @@ export class FirestoreDistributedCounter {
       .reverse()
       .reduce((value, name) => ({ [name]: value }), increment);
 
-    const shardId = uuid.v4();
+    const shardId = nanoid();
     this.shardsRef
       .doc(shardId)
       .set(update, { merge: true })
