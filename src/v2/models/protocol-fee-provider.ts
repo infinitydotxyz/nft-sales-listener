@@ -24,8 +24,8 @@ export class ProtocolFee {
   getFees(totalPrice: BigNumberish) {
     const price = BigNumber.from(totalPrice);
     const protocolFeeBPS = parseInt(this._props.protocolFeeBPS, 10);
-    const feesPaidWei = price.mul(protocolFeeBPS).div(100).toBigInt();
     const feePercent = protocolFeeBPS / 100;
+    const feesPaidWei = price.mul(protocolFeeBPS).div(10000).toBigInt();
     return {
       feesPaidWei,
       feePercent,

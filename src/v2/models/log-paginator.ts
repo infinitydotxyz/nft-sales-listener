@@ -78,13 +78,14 @@ export class LogPaginator {
     maxBlock: number,
     maxAttempts: number
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
+    const defaultPageSize = 500;
     const blockRange = {
       maxBlock,
       minBlock,
       from: minBlock,
-      to: minBlock + 2000,
-      pageSize: 2000,
-      maxPageSize: 2000
+      to: minBlock + defaultPageSize,
+      pageSize: defaultPageSize,
+      maxPageSize: defaultPageSize
     };
 
     const errorHandler = this.ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000, blockRange);
@@ -120,7 +121,7 @@ export class LogPaginator {
         }
 
         const from = blockRange.from;
-        const to = from === 0 && blockRange.pageSize <= 2000 ? blockRange.maxBlock : blockRange.to;
+        const to = from === 0 && blockRange.pageSize <= defaultPageSize ? blockRange.maxBlock : blockRange.to;
         const events = await thunkedLogRequest(from, to);
 
         if (events.length === 0) {

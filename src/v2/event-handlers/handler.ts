@@ -324,6 +324,8 @@ export class EventHandler implements IEventHandler {
           seller: trimLowerCase(preParsedSale.seller),
           source: preParsedSales.source as SaleSource.Infinity,
           tokenStandard: preParsedSale.tokenStandard,
+          isAggregated: false,
+          isDeleted: false
         }
 
         const totalPrice = convertWeiToEther(preParsedSale.price);
@@ -342,6 +344,8 @@ export class EventHandler implements IEventHandler {
               protocolFeeBPS: preParsedSale.protocolFeeBPS,
               protocolFee: orderItemProtocolFee,
               protocolFeeWei: orderItemProtocolFeeWei.toString(),
+              isAggregated: false,
+              isDeleted: false
             };
             sales.push(sale);
           }
@@ -375,6 +379,8 @@ export class EventHandler implements IEventHandler {
         quantity: sale.quantity,
         source: preParsedSale.source as SaleSource.OpenSea | SaleSource.Seaport,
         tokenStandard: sale.tokenStandard,
+        isAggregated: false,
+        isDeleted: false
       };
       sales.push(nftSale);
     }

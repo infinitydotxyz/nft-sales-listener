@@ -41,8 +41,8 @@ export abstract class Contract {
     const promises = this._listeners.map(async (listener) => {
       const listenerData = data[listener.eventName];
       let fromBlock = listenerData?.lastBlockUpdated;
-      if (!fromBlock) {
-        fromBlock = await this.contract.provider.getBlockNumber();
+      if (typeof fromBlock !== 'number' || fromBlock < 0) {
+        fromBlock = 0;
       }
       return listener.backfill(fromBlock);
     });

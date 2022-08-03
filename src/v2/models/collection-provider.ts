@@ -10,7 +10,7 @@ import { isCollectionIndexed } from 'utils';
 export class CollectionProvider {
   private collectionCache: QuickLRU<string, Promise<Partial<Collection>>>;
 
-  constructor(maxSize: number, private firebase: Firebase) {
+  constructor(maxSize: number, private firebase: Firebase, private attemptToIndexCollections = true) {
     this.collectionCache = new QuickLRU({
       maxSize: maxSize
     });
@@ -29,7 +29,7 @@ export class CollectionProvider {
         .get()
         .then((doc) => {
           const collection = (doc.data() || {}) as Partial<Collection>;
-          if (!isCollectionIndexed(collection)) {
+          if (!isCollectionIndexed(collection) && this.attemptToIndexCollections) {
             void this.attemptToIndex({ address: collectionAddress, chainId });
           }
           resolve(collection);
