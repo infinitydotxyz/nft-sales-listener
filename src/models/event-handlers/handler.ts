@@ -21,10 +21,8 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
-import Firebase from 'database/Firebase';
 import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
 import { BigNumber } from 'ethers';
-import Providers from 'models/Providers';
 import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from 'types';
 import { convertWeiToEther } from 'utils';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
@@ -36,6 +34,8 @@ import { CollectionProvider } from 'models/collection-provider';
 import { Order } from './order';
 import { OrderItem } from './order-item';
 import { EventHandler as IEventHandler } from './types';
+import { Providers } from 'models/Providers';
+import { Firebase } from 'database/Firebase';
 
 export class EventHandler implements IEventHandler {
   constructor(
@@ -55,17 +55,18 @@ export class EventHandler implements IEventHandler {
         .get();
 
       console.log(`Found: ${orders.size} orders to update for cancel all`);
-      const batchHandler = new FirestoreBatchHandler();
-      for (const order of orders.docs) {
+      const batchHandler = new FirestoreBatchHandler(this.firebase);
+      for (const orderDoc of orders.docs) {
         // update counters
         try {
-          Order.updateOrderCounters(order.data() as FirestoreOrder);
+          const order = new Order(orderDoc.data() as FirestoreOrder, this.firebase);
+          order.updateOrderCounters();
         } catch (err) {
           console.error('Error updating order counters on cancel all orders', err);
         }
 
         // update order
-        const orderRef = order.ref;
+        const orderRef = orderDoc.ref;
         batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
 
         // update orderItems sub collection
@@ -87,7 +88,7 @@ export class EventHandler implements IEventHandler {
 
   async cancelMultipleOrders(event: CancelMultipleOrdersEvent): Promise<void> {
     try {
-      const batchHandler = new FirestoreBatchHandler();
+      const batchHandler = new FirestoreBatchHandler(this.firebase);
       for (const nonce of event.nonces) {
         const orders = await this.firebase.db
           .collection(firestoreConstants.ORDERS_COLL)
@@ -95,16 +96,17 @@ export class EventHandler implements IEventHandler {
           .where('nonce', '==', nonce)
           .get();
 
-        for (const order of orders.docs) {
+        for (const orderDoc of orders.docs) {
           // update counters
           try {
-            Order.updateOrderCounters(order.data() as FirestoreOrder);
+            const order = new Order(orderDoc.data() as FirestoreOrder, this.firebase);
+            order.updateOrderCounters();
           } catch (err) {
             console.error('Error updating order counters on cancel multiple orders', err);
           }
 
           // update order
-          const orderRef = order.ref;
+          const orderRef = orderDoc.ref;
           batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
 
           // update orderItems sub collection
@@ -281,7 +283,9 @@ export class EventHandler implements IEventHandler {
     infinitySale: Pick<PreParsedInfinityNftSale, 'buyer' | 'seller' | 'orderItems'>,
     orderHash: string
   ): Promise<void> {
-    const orderItemQueries = Object.values(OrderItem.getImpactedOrderItemsQueries(infinitySale, orderHash));
+    const orderItemQueries = Object.values(
+      OrderItem.getImpactedOrderItemsQueries(infinitySale, orderHash, this.firebase)
+    );
     const orderItemRefs = await Promise.all(orderItemQueries.map((query) => query.get()));
 
     const orderPromises = orderItemRefs
@@ -294,7 +298,7 @@ export class EventHandler implements IEventHandler {
             .then((snap) => {
               const orderData = snap.data() as FirestoreOrder;
               if (orderData) {
-                resolve(new Order(orderData));
+                resolve(new Order(orderData, this.firebase));
               } else {
                 reject(new Error('Order not found'));
               }

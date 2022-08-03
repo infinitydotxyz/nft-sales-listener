@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { providers } from 'container';
-import Firebase from 'database/Firebase';
+import { Firebase } from 'database/Firebase';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { ProtocolFeeUpdatedEvent } from './contract-listeners/protocol-fee-updated.listener';
+import { Providers } from './providers';
 
 export type ProtocolFeeProps = Pick<ProtocolFeeUpdatedEvent, 'blockNumber' | 'transactionIndex' | 'protocolFeeBPS'>;
 
@@ -37,7 +37,7 @@ export class ProtocolFeeProvider {
   private _protocolFees: Map<string, { saved: ProtocolFee[]; backup?: Promise<ProtocolFee> }> = new Map();
 
   private initialSync: Promise<void>;
-  constructor(private firebase: Firebase) {
+  constructor(private firebase: Firebase, private providers: Providers) {
     this.initialSync = this._sync();
   }
 
@@ -105,7 +105,7 @@ export class ProtocolFeeProvider {
   }
 
   protected async _getCurrentProtocolFee(contractAddress: string, chainId: ChainId): Promise<ProtocolFee> {
-    const provider = providers.getProviderByChainId(chainId);
+    const provider = this.providers.getProviderByChainId(chainId);
     const contract = new ethers.Contract(contractAddress, InfinityExchangeABI, provider);
     const feeBPS: number = await contract.protocolFeeBps();
     const blockNumber = await contract.provider.getBlockNumber();

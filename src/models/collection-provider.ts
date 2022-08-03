@@ -2,7 +2,7 @@ import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Collection } from '@infinityxyz/lib/types/core/Collection';
 import { firestoreConstants, getCollectionDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
-import Firebase from 'database/Firebase';
+import { Firebase } from 'database/Firebase';
 import QuickLRU from 'quick-lru';
 import { enqueueCollection, ResponseType } from 'services/CollectionIndexingService';
 import { isCollectionIndexed } from 'utils';

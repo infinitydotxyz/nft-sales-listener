@@ -1,7 +1,7 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-import Firebase from 'database/Firebase';
-import Providers from 'models/Providers';
+import { Firebase } from 'database/Firebase';
+import { Providers } from 'models/providers';
 import { EventHandler } from 'models/event-handlers/types';
 import { ProtocolFeeProvider } from 'models/protocol-fee-provider';
 import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';

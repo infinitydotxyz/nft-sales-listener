@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import Firebase from 'database/Firebase';
+import { Firebase } from 'database/Firebase';
 import { ethers } from 'ethers';
 import { ContractListener, ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
 import { BlockProvider } from 'models/block-provider';

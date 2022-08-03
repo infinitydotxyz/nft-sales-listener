@@ -1,12 +1,10 @@
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { JSON_RPC_GOERLI_KEYS, JSON_RPC_MAINNET_KEYS } from '../constants';
-import { singleton } from 'tsyringe';
 import { BlockProvider } from 'models/block-provider';
 import { randomItem } from '../utils';
 
-@singleton()
-export default class Providers {
+export class Providers {
   private readonly providers: Record<ChainId, StaticJsonRpcProvider[]>;
   private readonly blockProviders: Record<ChainId, BlockProvider | undefined>;
 

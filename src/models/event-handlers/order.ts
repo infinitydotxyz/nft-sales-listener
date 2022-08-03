@@ -1,6 +1,6 @@
 import { FirestoreOrder, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { firebase } from 'container';
+import { Firebase } from 'database/Firebase';
 import { FirestoreDistributedCounter } from 'database/FirestoreCounter';
 import { PreParsedInfinityNftSale } from 'types';
 import { OrderItem } from './order-item';
@@ -8,48 +8,49 @@ import { OrderType } from './types';
 
 export class Order {
   // order counters
-  private static ordersCounterDocRef = firebase.db
+  private ordersCounterDocRef = this.firebase.db
     .collection(firestoreConstants.ORDERS_COLL)
     .doc(firestoreConstants.COUNTER_DOC);
   // num items
-  static numBuyOrderItems = new FirestoreDistributedCounter(
-    Order.ordersCounterDocRef,
+  numBuyOrderItems = new FirestoreDistributedCounter(
+    this.ordersCounterDocRef,
     firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD
   );
-  static numSellOrderItems = new FirestoreDistributedCounter(
-    Order.ordersCounterDocRef,
+
+  numSellOrderItems = new FirestoreDistributedCounter(
+    this.ordersCounterDocRef,
     firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD
   );
   // start prices
-  static openBuyInterest = new FirestoreDistributedCounter(
-    Order.ordersCounterDocRef,
+  openBuyInterest = new FirestoreDistributedCounter(
+    this.ordersCounterDocRef,
     firestoreConstants.OPEN_BUY_INTEREST_FIELD
   );
-  static openSellInterest = new FirestoreDistributedCounter(
-    Order.ordersCounterDocRef,
+  openSellInterest = new FirestoreDistributedCounter(
+    this.ordersCounterDocRef,
     firestoreConstants.OPEN_SELL_INTEREST_FIELD
   );
 
-  static getRef(orderId: string): FirebaseFirestore.DocumentReference<FirestoreOrder> {
+  static getRef(orderId: string, firebase: Firebase): FirebaseFirestore.DocumentReference<FirestoreOrder> {
     return firebase.db
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(orderId) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
   }
 
-  static updateOrderCounters(order: FirestoreOrder) {
-    const numItems = order.numItems;
-    if (order.signedOrder.isSellOrder) {
-      Order.numSellOrderItems.incrementBy(numItems * -1);
-      Order.openSellInterest.incrementBy(order.startPriceEth * -1);
+  updateOrderCounters() {
+    const numItems = this.order.numItems;
+    if (this.order.signedOrder.isSellOrder) {
+      this.numSellOrderItems.incrementBy(numItems * -1);
+      this.openSellInterest.incrementBy(this.order.startPriceEth * -1);
     } else {
-      Order.numBuyOrderItems.incrementBy(numItems * -1);
-      Order.openBuyInterest.incrementBy(order.startPriceEth * -1);
+      this.numBuyOrderItems.incrementBy(numItems * -1);
+      this.openBuyInterest.incrementBy(this.order.startPriceEth * -1);
     }
   }
 
   private orderItemsRef: FirebaseFirestore.CollectionReference<FirestoreOrderItem>;
 
-  constructor(private order: FirestoreOrder) {
+  constructor(private order: FirestoreOrder, private firebase: Firebase) {
     this.orderItemsRef = this.ref.collection(
       firestoreConstants.ORDER_ITEMS_SUB_COLL
     ) as FirebaseFirestore.CollectionReference<FirestoreOrderItem>;
@@ -67,7 +68,7 @@ export class Order {
     this.order.orderStatus = OBOrderStatus.Invalid;
 
     try {
-      Order.updateOrderCounters(this.order);
+      this.updateOrderCounters();
     } catch (err) {
       console.error('Error updating order counters on order fulfillment', err);
     }
@@ -82,7 +83,7 @@ export class Order {
 
   private async getOrderItems(): Promise<OrderItem[]> {
     const orderItems = await this.orderItemsRef.get();
-    return orderItems.docs.map((doc) => new OrderItem(doc.data(), doc.ref));
+    return orderItems.docs.map((doc) => new OrderItem(doc.data(), doc.ref, this.firebase));
   }
 
   public get type(): OrderType {
@@ -90,6 +91,6 @@ export class Order {
   }
 
   private get ref(): FirebaseFirestore.DocumentReference<FirestoreOrder> {
-    return Order.getRef(this.order.id);
+    return Order.getRef(this.order.id, this.firebase);
   }
 }

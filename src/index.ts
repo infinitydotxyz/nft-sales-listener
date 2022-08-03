@@ -1,6 +1,3 @@
-import 'reflect-metadata';
-
-import { firebase, providers } from 'container';
 import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc } from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
@@ -9,13 +6,17 @@ import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
+import { Providers } from 'models/Providers';
+import { Firebase } from 'database/Firebase';
 
 function main() {
+  const providers = new Providers();
+  const firebase = new Firebase();
   const contractFactory = new ContractFactory(providers, firebase);
   const attemptToIndexMissingCollections = false; // set based on env
   const collectionProvider = new CollectionProvider(50, firebase, attemptToIndexMissingCollections);
   const handler = new EventHandler(firebase, providers, collectionProvider);
-  const protocolFeeProvider = new ProtocolFeeProvider(firebase);
+  const protocolFeeProvider = new ProtocolFeeProvider(firebase, providers);
   const mainnetTxReceiptProvider = new TransactionReceiptProvider(500, providers.getProviderByChainId(ChainId.Mainnet));
   const infinityExchangeMainnet = contractFactory.create(
     infinityExchangeMainnetDesc,
@@ -62,7 +63,7 @@ function main() {
   //   });
 }
 
-async function getSaleByTx() {
+async function getSaleByTx(firebase: Firebase) {
   const hash = trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335');
 
   const snaps = await firebase.db.collection('sales').where('txHash', '==', hash).get();

@@ -1,6 +1,6 @@
 import { FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { firebase } from 'container';
+import { Firebase } from 'database/Firebase';
 import { PreParsedInfinityNftSale } from 'types';
 import { getUsername } from 'utils';
 import { OrderType } from './types';
@@ -10,7 +10,8 @@ export class OrderItem {
 
   static getImpactedOrderItemsQueries(
     order: Pick<PreParsedInfinityNftSale, 'buyer' | 'seller'>,
-    orderHash: string
+    orderHash: string,
+    firebase: Firebase
   ): Record<string, FirebaseFirestore.Query<FirestoreOrderItem>> {
     const tokenQuery = firebase.db
       .collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL)
@@ -37,7 +38,8 @@ export class OrderItem {
 
   constructor(
     private orderItem: FirestoreOrderItem,
-    private ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>
+    private ref: FirebaseFirestore.DocumentReference<FirestoreOrderItem>,
+    private firebase: Firebase
   ) {
     this.initialOwner = this._ownerFromOrder;
     this.currentOwner = this.initialOwner;
@@ -104,7 +106,7 @@ export class OrderItem {
 
     if (this.type === OrderType.Offer && OrderItem.OWNER_INHERITS_OFFERS) {
       this.orderItem.takerAddress = sale.buyer;
-      const takerUsername = await getUsername(sale.buyer);
+      const takerUsername = await getUsername(sale.buyer, this.firebase);
       this.orderItem.takerUsername = takerUsername;
     }
     this.currentOwner = sale.buyer;

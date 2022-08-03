@@ -9,7 +9,7 @@ import { ContractListenerEvent } from '../contract-listeners/contract-listener.a
 import { EventHandler } from 'models/event-handlers/types';
 import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import Firebase from 'database/Firebase';
+import { Firebase } from 'database/Firebase';
 import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
 import { ProtocolFeeUpdatedListener } from '../contract-listeners/protocol-fee-updated.listener';
 import { ProtocolFeeProvider } from 'models/protocol-fee-provider';

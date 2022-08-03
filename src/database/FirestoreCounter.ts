@@ -1,5 +1,4 @@
-import { logger } from 'container';
-import { nanoid } from 'nanoid'
+import { nanoid } from 'nanoid';
 import firebaseAdmin from 'firebase-admin';
 
 export class FirestoreDistributedCounter {
@@ -28,7 +27,7 @@ export class FirestoreDistributedCounter {
       .doc(shardId)
       .set(update, { merge: true })
       .catch((err) => {
-        logger.error('Error updating firestore distributed counter shard', err);
+        console.error('Error updating firestore distributed counter shard', err);
       });
   }
 }
