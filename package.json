@@ -7,7 +7,6 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run update:lib && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint . --ext .ts,.js",
@@ -15,10 +14,11 @@
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",
     "start": "npx cross-env NODE_PATH=./dist node -r dotenv/config ./dist/index.js",
-    "dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/v2/index.ts",
+    "start:dev": "cross-env NODE_PATH=./src ts-node -r dotenv/config ./src/index.ts",
     "deploy:dev": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-dev",
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity",
-    "update:lib": "npm install @infinityxyz/lib@latest"
+    "update:lib": "npm install @infinityxyz/lib@latest",
+    "pre:push": "npm run build && npm run lint:fix && npm run fmt:write"
   },
   "devDependencies": {
     "@types/node": "^17.0.14",
@@ -35,7 +35,7 @@
     "typescript": "^4.6.2"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.141.0",
+    "@infinityxyz/lib": "^1.141.1",
     "axios": "^0.26.1",
     "chalk": "^4.1.2",
     "date-fns": "^2.28.0",

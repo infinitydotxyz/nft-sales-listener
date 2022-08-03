@@ -1,8 +1,8 @@
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { singleton } from 'tsyringe';
-import { BlockProvider } from 'v2/models/block-provider';
 import { JSON_RPC_GOERLI_KEYS, JSON_RPC_MAINNET_KEYS } from '../constants';
+import { singleton } from 'tsyringe';
+import { BlockProvider } from 'models/block-provider';
 import { randomItem } from '../utils';
 
 @singleton()
@@ -19,7 +19,7 @@ export default class Providers {
     });
 
     const mainnetBlockProvider = mainnetProviders[0] ? new BlockProvider(50, mainnetProviders[0]) : undefined;
-    const goerliBlockProvider = goerliProviders[0] ? new BlockProvider(50, goerliProviders[0]) : undefined; 
+    const goerliBlockProvider = goerliProviders[0] ? new BlockProvider(50, goerliProviders[0]) : undefined;
 
     this.providers = {
       [ChainId.Mainnet]: mainnetProviders,
@@ -30,7 +30,7 @@ export default class Providers {
       [ChainId.Mainnet]: mainnetBlockProvider,
       [ChainId.Goerli]: goerliBlockProvider,
       [ChainId.Polygon]: undefined
-    }
+    };
   }
 
   getProviderByChainId(chainId: string): StaticJsonRpcProvider {
@@ -48,6 +48,5 @@ export default class Providers {
       throw new Error(`Block provider not available for chain id: ${chainId}`);
     }
     return blockProvider;
-
-  } 
+  }
 }

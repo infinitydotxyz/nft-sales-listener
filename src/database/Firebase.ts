@@ -35,7 +35,9 @@ export default class Firebase {
     chainId: string,
     address: string
   ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(getCollectionDocId({collectionAddress: address, chainId }));
+    const collectionDoc = this.db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(getCollectionDocId({ collectionAddress: address, chainId }));
     return collectionDoc;
   }
 

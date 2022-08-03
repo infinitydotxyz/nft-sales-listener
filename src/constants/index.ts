@@ -1,10 +1,11 @@
 export * from './wyvern-constants';
 
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
+export const MAX_UNCLE_ABLE_BLOCKS = 6;
 
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 // export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
-export const FIREBASE_SERVICE_ACCOUNT = 'nftc-test.json'
+export const FIREBASE_SERVICE_ACCOUNT = 'nftc-test.json';
 export const COLLECTION_INDEXING_SERVICE_URL =
   'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
 /**
