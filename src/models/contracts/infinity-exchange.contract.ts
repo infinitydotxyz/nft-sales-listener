@@ -6,13 +6,13 @@ import { BlockProvider } from '../block-provider';
 import { MatchOrderListener } from '../contract-listeners/match-order.listener';
 import { TakeOrderListener } from '../contract-listeners/take-order.listener';
 import { ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
-import { EventHandler } from 'models/event-handlers/types';
+import { EventHandler } from '../event-handlers/types';
 import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Firebase } from 'database/Firebase';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+import { Firebase } from '../../database/Firebase';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { ProtocolFeeUpdatedListener } from '../contract-listeners/protocol-fee-updated.listener';
-import { ProtocolFeeProvider } from 'models/protocol-fee-provider';
+import { ProtocolFeeProvider } from '../protocol-fee-provider';
 import { Contracts } from './types';
 
 export type InfinityExchangeEventListener =

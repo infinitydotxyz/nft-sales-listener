@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { InfinityExchangeABI } from '@infinityxyz/lib/abi/infinityExchange';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Firebase } from 'database/Firebase';
+import { Firebase } from '../database/Firebase';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { ProtocolFeeUpdatedEvent } from './contract-listeners/protocol-fee-updated.listener';
 import { Providers } from './providers';

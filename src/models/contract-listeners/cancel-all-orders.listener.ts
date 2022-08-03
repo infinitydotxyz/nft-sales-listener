@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { ethers } from 'ethers';
-import { BlockProvider } from 'models/block-provider';
+import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
 export type CancelAllOrdersEvent = {

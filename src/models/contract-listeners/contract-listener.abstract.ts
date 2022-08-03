@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
 import { Contract } from 'ethers/lib/ethers';
-import { Event, EventEmitter } from 'models/event-emitter';
+import { Event, EventEmitter } from '../event-emitter';
 import { BlockProvider } from '../block-provider';
 import { LogPaginator } from '../log-paginator';
 import { HistoricalLogsChunk } from '../log-paginator.types';

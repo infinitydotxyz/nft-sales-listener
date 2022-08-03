@@ -2,12 +2,11 @@ import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchange
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
 import { CollectionProvider } from './models/collection-provider';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
-import { Providers } from 'models/Providers';
-import { Firebase } from 'database/Firebase';
+import { Providers } from './models/Providers';
+import { Firebase } from './database/Firebase';
 
 function main() {
   const providers = new Providers();

@@ -1,8 +1,8 @@
 import { FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { Firebase } from 'database/Firebase';
-import { PreParsedInfinityNftSale } from 'types';
-import { getUsername } from 'utils';
+import { Firebase } from '../../database/Firebase';
+import { PreParsedInfinityNftSale } from '../../types';
+import { getUsername } from '../../utils';
 import { OrderType } from './types';
 
 export class OrderItem {

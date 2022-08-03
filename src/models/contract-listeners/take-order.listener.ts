@@ -5,9 +5,9 @@ import {
   PreParsedInfinityNftSale,
   PreParseInfinityMultipleNftSaleTakeOrder,
   PreParseInfinityNftSaleInfoTakeOrder
-} from 'types';
-import { ProtocolFeeProvider } from 'models/protocol-fee-provider';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+} from '../../types';
+import { ProtocolFeeProvider } from '../protocol-fee-provider';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { BlockProvider } from '../block-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 

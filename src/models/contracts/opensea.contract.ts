@@ -1,13 +1,13 @@
 import { ethers } from 'ethers';
 import { OpenSeaOrdersMatchedListener } from '../contract-listeners/opensea-orders-matched.listener';
-import { BlockProvider } from 'models/block-provider';
+import { BlockProvider } from '../block-provider';
 import WyvernExchangeABI from '../../abi/wyvernExchange.json';
 import { ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
-import { EventHandler } from 'models/event-handlers/types';
+import { EventHandler } from '../event-handlers/types';
 import { DbSyncedContract } from './db-synced-contract.abstract';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Firebase } from 'database/Firebase';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+import { Firebase } from '../../database/Firebase';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { Contracts } from './types';
 
 export type OpenSeaListener = OpenSeaOrdersMatchedListener;

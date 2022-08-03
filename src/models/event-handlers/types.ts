@@ -1,4 +1,4 @@
-import { PreParsedMultipleNftSale } from 'types';
+import { PreParsedMultipleNftSale } from '../../types';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from '../contract-listeners/match-order.listener';

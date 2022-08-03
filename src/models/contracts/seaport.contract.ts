@@ -1,13 +1,13 @@
 import { ethers } from 'ethers';
-import { BlockProvider } from 'models/block-provider';
+import { BlockProvider } from '../block-provider';
 import SeaportABI from '../../abi/seaport.json';
 import { ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
 import { SeaportOrderFulfilledListener } from '../contract-listeners/seaport-order-fulfilled.listener';
-import { EventHandler } from 'models/event-handlers/types';
+import { EventHandler } from '../event-handlers/types';
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Firebase } from 'database/Firebase';
+import { Firebase } from '../../database/Firebase';
 import { DbSyncedContract } from './db-synced-contract.abstract';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { Contracts } from './types';
 
 export type SeaportListener = SeaportOrderFulfilledListener;

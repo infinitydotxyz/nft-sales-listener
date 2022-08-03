@@ -1,7 +1,7 @@
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { JSON_RPC_GOERLI_KEYS, JSON_RPC_MAINNET_KEYS } from '../constants';
-import { BlockProvider } from 'models/block-provider';
+import { BlockProvider } from './block-provider';
 import { randomItem } from '../utils';
 
 export class Providers {

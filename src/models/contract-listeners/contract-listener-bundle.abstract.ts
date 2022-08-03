@@ -1,8 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { Contract, ethers } from 'ethers';
-import { BlockProvider } from 'models/block-provider';
-import { HistoricalLogsChunk } from 'models/log-paginator.types';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+import { BlockProvider } from '../block-provider';
+import { HistoricalLogsChunk } from '../log-paginator.types';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { ContractListener, ContractListenerEvent, Events } from './contract-listener.abstract';
 
 export abstract class ContractListenerBundle<

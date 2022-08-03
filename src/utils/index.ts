@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
-import { Firebase } from 'database/Firebase';
+import { Firebase } from '../database/Firebase';
 
 /**
  * returns a random int between min (inclusive) and max (inclusive)

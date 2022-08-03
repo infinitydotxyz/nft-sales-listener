@@ -7,9 +7,9 @@ import {
   PreParsedNftSaleInfo,
   SeaportReceivedAmount,
   SeaportSoldNft
-} from 'types';
-import { BlockProvider } from 'models/block-provider';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+} from '../../types';
+import { BlockProvider } from '../block-provider';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
 export type SeaportOrderFulfilledEvent = { blockNumber: number; events: PreParsedNftSale[] };

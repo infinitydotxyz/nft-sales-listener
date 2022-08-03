@@ -21,21 +21,21 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
-import FirestoreBatchHandler from 'database/FirestoreBatchHandler';
+import FirestoreBatchHandler from '../../database/FirestoreBatchHandler';
 import { BigNumber } from 'ethers';
-import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from 'types';
-import { convertWeiToEther } from 'utils';
+import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from '../../types';
+import { convertWeiToEther } from '../../utils';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from '../contract-listeners/match-order.listener';
 import { ProtocolFeeUpdatedEvent } from '../contract-listeners/protocol-fee-updated.listener';
 import { TakeOrderBundleEvent } from '../contract-listeners/take-order.listener';
-import { CollectionProvider } from 'models/collection-provider';
+import { CollectionProvider } from '../../models/collection-provider';
 import { Order } from './order';
 import { OrderItem } from './order-item';
 import { EventHandler as IEventHandler } from './types';
-import { Providers } from 'models/Providers';
-import { Firebase } from 'database/Firebase';
+import { Providers } from '../../models/Providers';
+import { Firebase } from '../../database/Firebase';
 
 export class EventHandler implements IEventHandler {
   constructor(

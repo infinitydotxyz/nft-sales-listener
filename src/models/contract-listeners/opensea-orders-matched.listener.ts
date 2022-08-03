@@ -1,10 +1,10 @@
 import { ChainId, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 import { sleep } from '@infinityxyz/lib/utils';
-import { MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from 'constants/wyvern-constants';
+import { MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../../constants/wyvern-constants';
 import { ethers } from 'ethers';
-import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo } from 'types';
-import { BlockProvider } from 'models/block-provider';
-import { TransactionReceiptProvider } from 'models/transaction-receipt-provider';
+import { PreParsedMultipleNftSale, PreParsedNftSale, PreParsedNftSaleInfo } from '../../types';
+import { BlockProvider } from '../block-provider';
+import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { ContractListenerBundle } from './contract-listener-bundle.abstract';
 
 export type OpenSeaOrdersMatchedEvent = { blockNumber: number; events: PreParsedNftSale[] };
