@@ -63,20 +63,4 @@ function main() {
   //   });
 }
 
-async function getSaleByTx(firebase: Firebase) {
-  const hash = trimLowerCase('0x0226b51c5c319bd31b5645293942002e5818c5585bea1abfef3c7086eaac9335');
-
-  const snaps = await firebase.db.collection('sales').where('txHash', '==', hash).get();
-  snaps.docs.forEach((doc) => {
-    const id = doc.id;
-    const sale = doc.data();
-
-    console.log(`Found sale with hash: ${hash} Id: ${id}`);
-    console.log(JSON.stringify(sale, null, 2));
-  });
-
-  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-  console.log(`Found ${snaps.docs.length} sales with hash: ${hash}`);
-}
-
 void main();
