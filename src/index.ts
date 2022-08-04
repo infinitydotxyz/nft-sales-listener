@@ -44,22 +44,22 @@ function main() {
     .catch((err) => {
       console.error(err);
     });
-  //   wyvernExchangeMainnet
-  //     .sync()
-  //     .then(() => {
-  //       console.log('Wyvern Exchange Mainnet backfilled');
-  //     })
-  //     .catch((err) => {
-  //       console.error(err);
-  //     });
-  // seaportExchangeMainnet
-  //   .sync()
-  //   .then(() => {
-  //     console.log('Seaport Exchange Mainnet backfilled');
-  //   })
-  //   .catch((err) => {
-  //     console.error(err);
-  //   });
+  wyvernExchangeMainnet
+    .sync()
+    .then(() => {
+      console.log('Wyvern Exchange Mainnet backfilled');
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+  seaportExchangeMainnet
+    .sync()
+    .then(() => {
+      console.log('Seaport Exchange Mainnet backfilled');
+    })
+    .catch((err) => {
+      console.error(err);
+    });
 }
 
 void main();

@@ -15,8 +15,24 @@ export class TransactionReceiptProvider {
     if (receiptPromise) {
       return await receiptPromise;
     }
-    receiptPromise = this.provider.getTransactionReceipt(txHash);
+    receiptPromise = this._getReceipt(txHash);
     this._cache.set(txHash, receiptPromise);
     return receiptPromise;
+  }
+
+  private async _getReceipt(txHash: string): Promise<ethers.providers.TransactionReceipt> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const result = await this.provider.getTransactionReceipt(txHash);
+        if (!result) {
+          throw new Error('No receipt found');
+        }
+        return result;
+      } catch (err) {
+        if (attempt > 3) {
+          throw err;
+        }
+      }
+    }
   }
 }

@@ -59,19 +59,23 @@ export abstract class ContractListenerBundle<
 
   protected _start() {
     const handler = async (...args: ethers.Event[]) => {
-      const arg = args[args.length - 1];
-      if (arg?.transactionHash) {
-        const tx = await this.txReceiptProvider.getReceipt(arg.transactionHash);
-        const logs = tx.logs.filter((log) => {
-          return log.topics.every((topic, index) => {
-            const correspondingTopic = this._eventFilter.topics?.[index];
-            return !correspondingTopic || topic === correspondingTopic;
+      try {
+        const arg = args[args.length - 1];
+        if (arg?.transactionHash) {
+          const tx = await this.txReceiptProvider.getReceipt(arg.transactionHash);
+          const logs = tx.logs.filter((log) => {
+            return log.topics.every((topic, index) => {
+              const correspondingTopic = this._eventFilter.topics?.[index];
+              return !correspondingTopic || topic === correspondingTopic;
+            });
           });
-        });
-        const decoded = await this.decodeLogs(logs);
-        if (decoded != null) {
-          this._eventEmitter._emit(ContractListenerEvent.EventOccurred, decoded);
+          const decoded = await this.decodeLogs(logs);
+          if (decoded != null) {
+            this._eventEmitter._emit(ContractListenerEvent.EventOccurred, decoded);
+          }
         }
+      } catch (err) {
+        console.error(err);
       }
     };
     this._contract.on(this._eventFilter, handler);

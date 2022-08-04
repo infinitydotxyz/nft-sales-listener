@@ -94,9 +94,13 @@ export abstract class ContractListener<
 
   protected _start() {
     const handler = async (...args: ethers.Event[]) => {
-      const decoded = await this.decodeLog(args);
-      if (decoded != null) {
-        this._eventEmitter._emit(ContractListenerEvent.EventOccurred, decoded);
+      try {
+        const decoded = await this.decodeLog(args);
+        if (decoded != null) {
+          this._eventEmitter._emit(ContractListenerEvent.EventOccurred, decoded);
+        }
+      } catch (err) {
+        console.error(err);
       }
     };
     this._contract.on(this._eventFilter, handler);
