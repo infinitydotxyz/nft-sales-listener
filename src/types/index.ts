@@ -1,4 +1,4 @@
-import { ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 export interface PreParsedNftSale {
   chainId: string;
   txHash: string;
@@ -129,6 +129,8 @@ export interface StakerEvent {
   blockNumber: number;
   txHash: string;
   discriminator: StakerEventType;
+  stakerContractAddress: string;
+  chainId: ChainId;
 }
 
 export interface TokensUnStakedEvent extends StakerEvent {

@@ -5,8 +5,6 @@ import { StakerEventType, TokensUnStakedEvent } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
-
-
 export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent, Events<TokensUnStakedEvent>> {
   public readonly eventName = 'UnStaked';
   protected _eventFilter: ethers.EventFilter;
@@ -32,6 +30,8 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
       discriminator: StakerEventType.UnStaked,
       user,
       amount,
+      stakerContractAddress: this._contract.address,
+      chainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash
     };

@@ -5,7 +5,11 @@ import { OpenSeaContract } from './opensea.contract';
 import { SeaportContract } from './seaport.contract';
 
 export type ContractType = InfinityExchangeContract | OpenSeaContract | SeaportContract | InfinityStakerContract;
-export type ContractConstructors = typeof InfinityExchangeContract | typeof OpenSeaContract | typeof SeaportContract | typeof InfinityStakerContract;
+export type ContractConstructors =
+  | typeof InfinityExchangeContract
+  | typeof OpenSeaContract
+  | typeof SeaportContract
+  | typeof InfinityStakerContract;
 
 export interface ContractDescription {
   address: string;

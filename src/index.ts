@@ -70,9 +70,10 @@ function syncContracts(contracts: ContractType[]) {
           })
           .catch((err) => {
             console.error(contractName, err);
-          }).finally(() => {
-            resolve();
           })
+          .finally(() => {
+            resolve();
+          });
       });
     })
   );
