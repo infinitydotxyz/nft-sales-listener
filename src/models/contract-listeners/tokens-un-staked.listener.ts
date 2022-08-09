@@ -14,7 +14,7 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
     this._eventFilter = contract.filters.UnStaked();
   }
 
-  decodeLog(args: ethers.Event[]): TokensUnStakedEvent | null {
+  async decodeLog(args: ethers.Event[]): Promise<TokensUnStakedEvent | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;
     }
@@ -26,6 +26,7 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
 
     const user = trimLowerCase(String(eventData[0]));
     const amount = BigNumber.from(String(eventData[1])).toString();
+    const block = await this._blockProvider.getBlock(event.blockNumber);
     return {
       discriminator: StakerEventType.UnStaked,
       user,
@@ -33,7 +34,8 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
       stakerContractAddress: this._contract.address,
       chainId: this.chainId,
       blockNumber: event.blockNumber,
-      txHash: event.transactionHash
+      txHash: event.transactionHash,
+      timestamp: block.timestamp * 1000,
     };
   }
 }

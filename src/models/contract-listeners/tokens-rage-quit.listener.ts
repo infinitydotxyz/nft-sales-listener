@@ -14,7 +14,7 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
     this._eventFilter = contract.filters.RageQuit();
   }
 
-  decodeLog(args: ethers.Event[]): RageQuitEvent | null {
+  async decodeLog(args: ethers.Event[]): Promise<RageQuitEvent | null> {
     if (!args?.length || !Array.isArray(args) || !args[args.length - 1]) {
       return null;
     }
@@ -27,6 +27,7 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
     const user = trimLowerCase(String(eventData[0]));
     const amountReceived = BigNumber.from(String(eventData[1])).toString();
     const penaltyAmount = BigNumber.from(String(eventData[2])).toString();
+    const block = await this._blockProvider.getBlock(event.blockNumber);
     return {
       discriminator: StakerEventType.RageQuit,
       user,
@@ -35,7 +36,8 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
       stakerContractAddress: this._contract.address,
-      chainId: this.chainId
+      chainId: this.chainId,
+      timestamp: block.timestamp * 1000,
     };
   }
 }

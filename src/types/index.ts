@@ -127,6 +127,7 @@ export interface StakerEvent {
   user: string;
   amount: string;
   blockNumber: number;
+  timestamp: number;
   txHash: string;
   discriminator: StakerEventType;
   stakerContractAddress: string;
