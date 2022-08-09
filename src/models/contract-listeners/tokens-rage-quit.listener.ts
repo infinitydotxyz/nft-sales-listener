@@ -1,17 +1,12 @@
 import { ChainId } from "@infinityxyz/lib/types/core/ChainId";
 import { trimLowerCase } from "@infinityxyz/lib/utils/formatters";
 import { BigNumber, ethers } from "ethers";
+import { RageQuitEvent, StakerEventType } from "../../types";
 import { BlockProvider } from "../block-provider";
 import { ContractListener, Events } from "./contract-listener.abstract";
 
 
-export type RageQuitEvent = {
-    user: string;
-    amountReceived: string;
-    penaltyAmount: string;
-    blockNumber: number;
-    txHash: string;
-}
+
 
 export class RageQuitListener extends ContractListener<RageQuitEvent, Events<RageQuitEvent>> {
     public readonly eventName = 'RageQuit'; 
@@ -36,8 +31,9 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
           const amountReceived = BigNumber.from(String(eventData[1])).toString();
           const penaltyAmount = BigNumber.from(String(eventData[2])).toString();
           return {
+            discriminator: StakerEventType.RageQuit,
             user,
-            amountReceived: amountReceived,
+            amount: amountReceived,
             penaltyAmount,
             blockNumber: event.blockNumber,
             txHash: event.transactionHash

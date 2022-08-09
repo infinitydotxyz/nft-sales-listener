@@ -23,7 +23,7 @@ import {
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
 import FirestoreBatchHandler from '../../database/FirestoreBatchHandler';
 import { BigNumber } from 'ethers';
-import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from '../../types';
+import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale, RageQuitEvent, StakerEvents, TokensStakedEvent, TokensUnStakedEvent } from '../../types';
 import { convertWeiToEther } from '../../utils';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
@@ -43,6 +43,28 @@ export class EventHandler implements IEventHandler {
     private providers: Providers,
     private collectionProvider: CollectionProvider
   ) {}
+
+  async tokensStakedEvent(event: TokensStakedEvent): Promise<void> {
+    await this._saveStakerEvent(event);
+  }
+
+  async tokensUnStakedEvent(event: TokensUnStakedEvent): Promise<void> {
+    await this._saveStakerEvent(event);
+  }
+
+  async tokensRageQuitEvent(event: RageQuitEvent): Promise<void> {
+    await this._saveStakerEvent(event);
+  }
+
+  protected async _saveStakerEvent(event: StakerEvents): Promise<void> {
+    const stakingLedgerRef = this.firebase.db.collection('stakingLedger').doc(event.txHash);
+    try {
+      await stakingLedgerRef.create(event);
+    }catch(err) {
+      console.error(err);
+      // TODO handle checking if this is due to a duplicate event
+    }
+  }
 
   async cancelAllOrders(event: CancelAllOrdersEvent): Promise<void> {
     const userDocRef = this.firebase.db.collection(firestoreConstants.USERS_COLL).doc(event.user);
@@ -151,6 +173,7 @@ export class EventHandler implements IEventHandler {
   async protocolFeeUpdatedEvent(protocolFeeUpdated: ProtocolFeeUpdatedEvent): Promise<void> {
     await this.firebase.db.collection('protocolFeeEvents').doc(protocolFeeUpdated.txHash).set(protocolFeeUpdated);
   }
+
 
   private async saveSales(sales: NftSale[]): Promise<void> {
     if (!sales.length || !sales[0]) {

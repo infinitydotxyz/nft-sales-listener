@@ -1,12 +1,9 @@
-import { PreParsedMultipleNftSale } from '../../types';
+import { PreParsedMultipleNftSale, RageQuitEvent, TokensStakedEvent, TokensUnStakedEvent } from '../../types';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from '../contract-listeners/match-order.listener';
 import { ProtocolFeeUpdatedEvent } from '../contract-listeners/protocol-fee-updated.listener';
 import { TakeOrderBundleEvent } from '../contract-listeners/take-order.listener';
-import { RageQuitEvent } from '../contract-listeners/tokens-rage-quit.listener';
-import { TokensStakedEvent } from '../contract-listeners/tokens-staked.listener';
-import { TokensUnStakedEvent } from '../contract-listeners/tokens-unstaked.listener';
 
 export interface CancelAllOrdersHandler {
   cancelAllOrders(event: CancelAllOrdersEvent): Promise<void>;

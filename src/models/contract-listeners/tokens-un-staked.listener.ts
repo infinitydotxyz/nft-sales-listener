@@ -1,15 +1,11 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
+import { StakerEventType, TokensUnStakedEvent } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
-export type TokensUnStakedEvent = {
-  user: string;
-  amount: string;
-  blockNumber: number;
-  txHash: string;
-};
+
 
 export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent, Events<TokensUnStakedEvent>> {
   public readonly eventName = 'UnStaked';
@@ -33,6 +29,7 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
     const user = trimLowerCase(String(eventData[0]));
     const amount = BigNumber.from(String(eventData[1])).toString();
     return {
+      discriminator: StakerEventType.UnStaked,
       user,
       amount,
       blockNumber: event.blockNumber,

@@ -1,15 +1,11 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
+import { StakeDuration, StakerEventType, TokensStakedEvent } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
-export enum StakeDuration {
-  None = 'NONE',
-  ThreeMonths = 'THREE_MONTHS',
-  SixMonths = 'SIX_MONTHS',
-  TwelveMonths = 'TWELVE_MONTHS'
-}
+
 
 const contractStakeDurationToEnum: Record<number, StakeDuration > = {
     [0]: StakeDuration.None,
@@ -18,13 +14,6 @@ const contractStakeDurationToEnum: Record<number, StakeDuration > = {
     [3]: StakeDuration.TwelveMonths
 }
 
-export type TokensStakedEvent = {
-  user: string;
-  amount: string;
-  duration: StakeDuration;
-  blockNumber: number;
-  txHash: string;
-};
 
 export class TokensStakedListener extends ContractListener<TokensStakedEvent, Events<TokensStakedEvent>> {
   public readonly eventName = 'Staked';
@@ -54,6 +43,7 @@ export class TokensStakedListener extends ContractListener<TokensStakedEvent, Ev
         return null;
     }
     return {
+        discriminator: StakerEventType.Staked,
         user,
         amount,
         duration,
