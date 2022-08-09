@@ -8,8 +8,12 @@ import {
   InfinityLinkType,
   InfinityNftSale,
   NftSale,
+  RageQuitEvent,
   SaleSource,
-  Token
+  StakerEvents,
+  Token,
+  TokensStakedEvent,
+  TokensUnStakedEvent
 } from '@infinityxyz/lib/types/core';
 import { EventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { FirestoreOrder, OBOrderStatus } from '@infinityxyz/lib/types/core/OBOrder';
@@ -23,15 +27,7 @@ import {
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
 import FirestoreBatchHandler from '../../database/FirestoreBatchHandler';
 import { BigNumber } from 'ethers';
-import {
-  PreParsedInfinityNftSale,
-  PreParsedMultipleNftSale,
-  PreParseInfinityMultipleNftSale,
-  RageQuitEvent,
-  StakerEvents,
-  TokensStakedEvent,
-  TokensUnStakedEvent
-} from '../../types';
+import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from '../../types';
 import { convertWeiToEther } from '../../utils';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';

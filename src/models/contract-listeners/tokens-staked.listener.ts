@@ -1,15 +1,16 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+import { StakeDuration } from '@infinityxyz/lib/types/core/StakeDuration';
+import { StakerEventType, TokensStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
-import { StakeDuration, StakerEventType, TokensStakedEvent } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
 const contractStakeDurationToEnum: Record<number, StakeDuration> = {
-  [0]: StakeDuration.None,
-  [1]: StakeDuration.ThreeMonths,
-  [2]: StakeDuration.SixMonths,
-  [3]: StakeDuration.TwelveMonths
+  [0]: StakeDuration.X0,
+  [1]: StakeDuration.X3,
+  [2]: StakeDuration.X6,
+  [3]: StakeDuration.X12
 };
 
 export class TokensStakedListener extends ContractListener<TokensStakedEvent, Events<TokensStakedEvent>> {
@@ -49,7 +50,7 @@ export class TokensStakedListener extends ContractListener<TokensStakedEvent, Ev
       chainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
-      timestamp: block.timestamp * 1000,
+      timestamp: block.timestamp * 1000
     };
   }
 }

@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+import { RageQuitEvent, StakerEventType } from '@infinityxyz/lib/types/core/StakerEvents';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
-import { RageQuitEvent, StakerEventType } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
@@ -37,7 +37,7 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
       txHash: event.transactionHash,
       stakerContractAddress: this._contract.address,
       chainId: this.chainId,
-      timestamp: block.timestamp * 1000,
+      timestamp: block.timestamp * 1000
     };
   }
 }

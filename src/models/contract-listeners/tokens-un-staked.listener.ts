@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+import { StakerEventType, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
-import { StakerEventType, TokensUnStakedEvent } from '../../types';
 import { BlockProvider } from '../block-provider';
 import { ContractListener, Events } from './contract-listener.abstract';
 
@@ -35,7 +35,7 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
       chainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
-      timestamp: block.timestamp * 1000,
+      timestamp: block.timestamp * 1000
     };
   }
 }

@@ -1,4 +1,4 @@
-import { ChainId, ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ChainNFTs, SaleSource, TokenStandard } from '@infinityxyz/lib/types/core';
 export interface PreParsedNftSale {
   chainId: string;
   txHash: string;
@@ -109,43 +109,3 @@ export interface SeaportReceivedAmount {
   seller: string;
   buyer: string;
 }
-
-export enum StakeDuration {
-  None = 'NONE',
-  ThreeMonths = 'THREE_MONTHS',
-  SixMonths = 'SIX_MONTHS',
-  TwelveMonths = 'TWELVE_MONTHS'
-}
-
-export enum StakerEventType {
-  RageQuit = 'RAGE_QUIT',
-  Staked = 'STAKED',
-  UnStaked = 'UN_STAKED'
-}
-
-export interface StakerEvent {
-  user: string;
-  amount: string;
-  blockNumber: number;
-  timestamp: number;
-  txHash: string;
-  discriminator: StakerEventType;
-  stakerContractAddress: string;
-  chainId: ChainId;
-}
-
-export interface TokensUnStakedEvent extends StakerEvent {
-  discriminator: StakerEventType.UnStaked;
-}
-
-export interface RageQuitEvent extends StakerEvent {
-  penaltyAmount: string;
-  discriminator: StakerEventType.RageQuit;
-}
-
-export interface TokensStakedEvent extends StakerEvent {
-  duration: StakeDuration;
-  discriminator: StakerEventType.Staked;
-}
-
-export type StakerEvents = TokensUnStakedEvent | RageQuitEvent | TokensStakedEvent;
