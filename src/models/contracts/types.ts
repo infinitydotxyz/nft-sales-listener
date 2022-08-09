@@ -14,6 +14,7 @@ export interface ContractDescription {
 
 export enum Contracts {
   InfinityExchange = 'InfinityExchange',
+  InfinityStaker = 'InfinityStaker',
   OpenSea = 'OpenSea',
   Seaport = 'Seaport'
 }

@@ -99,7 +99,7 @@ export class InfinityExchangeContract extends DbSyncedContract {
     });
 
     return () => {
-      cancelers.map((cancel) => cancel());
+      cancelers.forEach((cancel) => cancel());
     };
   }
 }
