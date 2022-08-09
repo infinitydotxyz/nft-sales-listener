@@ -33,7 +33,6 @@ export class CancelMultipleOrdersListener extends ContractListener<
       return null;
     }
 
-    // see commented reference below for payload structure
     const user = trimLowerCase(String(eventData[0]));
     const nonces = eventData[1];
     const parsedNonces = (nonces as string[]).map((nonce: string) => parseInt(nonce));

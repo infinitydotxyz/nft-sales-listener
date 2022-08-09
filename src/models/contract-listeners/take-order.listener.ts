@@ -86,7 +86,6 @@ export class TakeOrderListener extends ContractListenerBundle<TakeOrderBundleEve
     if (eventData?.length !== 7) {
       return null;
     }
-    // see commented reference below for payload structure
     const orderHash = String(eventData[0]);
     const seller = trimLowerCase(String(eventData[1]));
     const buyer = trimLowerCase(String(eventData[2]));

@@ -45,7 +45,6 @@ export class TokensStakedListener extends ContractListener<TokensStakedEvent, Ev
       return null;
     }
 
-    // see commented reference below for payload structure
     const user = trimLowerCase(String(eventData[0]));
     const amount = BigNumber.from(String(eventData[1])).toString();
     const eventDuration = parseInt(String(eventData[2]));

@@ -86,7 +86,6 @@ export class SeaportOrderFulfilledListener extends ContractListenerBundle<
       return null;
     }
 
-    // see commented reference below for payload structure
     const offerer = eventData[1];
     const fulfiller = eventData[3];
     const spentItems = eventData[4];

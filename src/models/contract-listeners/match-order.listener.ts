@@ -87,7 +87,6 @@ export class MatchOrderListener extends ContractListenerBundle<MatchOrderBundleE
     if (eventData?.length !== 8) {
       return null;
     }
-    // see commented reference below for payload structure
     const sellOrderHash = String(eventData[0]);
     const buyOrderHash = String(eventData[1]);
     const seller = trimLowerCase(String(eventData[2]));

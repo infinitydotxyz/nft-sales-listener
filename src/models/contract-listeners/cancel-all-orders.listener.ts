@@ -30,7 +30,6 @@ export class CancelAllOrdersListener extends ContractListener<CancelAllOrdersEve
       return null;
     }
 
-    // see commented reference below for payload structure
     const user = trimLowerCase(String(eventData[0]));
     const minOrderNonce = parseInt(String(eventData[1]));
 

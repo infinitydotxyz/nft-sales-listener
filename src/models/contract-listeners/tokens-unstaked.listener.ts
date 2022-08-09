@@ -30,7 +30,6 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
       return null;
     }
 
-    // see commented reference below for payload structure
     const user = trimLowerCase(String(eventData[0]));
     const amount = BigNumber.from(String(eventData[1])).toString();
     return {
