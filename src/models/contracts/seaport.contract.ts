@@ -19,6 +19,7 @@ export class SeaportContract extends DbSyncedContract {
   protected _listeners: SeaportListener[] = [];
 
   static discriminator: Contracts = Contracts.Seaport;
+  discriminator: Contracts = Contracts.Seaport;
 
   constructor(
     provider: ethers.providers.StaticJsonRpcProvider,

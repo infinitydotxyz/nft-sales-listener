@@ -2,16 +2,19 @@ import { ethers } from 'ethers';
 import { ContractListener, ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
 import { BlockProvider } from '../block-provider';
 import { DbSyncedContractEvent } from './db-synced-contract.abstract';
+import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 
 export abstract class Contract {
   protected contract: ethers.Contract;
   protected abstract _listeners: ContractListener<any, any>[];
+  public abstract readonly discriminator: string
 
   constructor(
     address: string,
     provider: ethers.providers.StaticJsonRpcProvider,
     abi: ethers.ContractInterface,
-    protected blockProvider: BlockProvider
+    protected blockProvider: BlockProvider,
+    public readonly chainId: ChainId,
   ) {
     this.contract = new ethers.Contract(address, abi, provider);
   }

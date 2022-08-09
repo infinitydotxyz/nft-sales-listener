@@ -19,6 +19,7 @@ export class OpenSeaContract extends DbSyncedContract {
   protected _listeners: OpenSeaListener[] = [];
 
   static discriminator: Contracts = Contracts.OpenSea;
+  discriminator: Contracts = Contracts.OpenSea;
 
   constructor(
     provider: ethers.providers.StaticJsonRpcProvider,

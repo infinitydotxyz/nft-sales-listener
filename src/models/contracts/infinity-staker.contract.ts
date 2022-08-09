@@ -4,7 +4,7 @@ import { Firebase } from '../../database/Firebase';
 import { BlockProvider } from '../block-provider';
 import { RageQuitListener } from '../contract-listeners/tokens-rage-quit.listener';
 import { TokensStakedListener } from '../contract-listeners/tokens-staked.listener';
-import { TokensUnStakedListener } from '../contract-listeners/tokens-unstaked.listener';
+import { TokensUnStakedListener } from '../contract-listeners/tokens-un-staked.listener';
 import { EventHandler } from '../event-handlers/types';
 import { DbSyncedContract } from './db-synced-contract.abstract';
 import { Contracts } from './types';
@@ -22,6 +22,7 @@ export class InfinityStakerContract extends DbSyncedContract {
   static readonly listenerConstructors = [TokensUnStakedListener, TokensStakedListener];
 
   static discriminator: Contracts = Contracts.InfinityStaker;
+  discriminator = Contracts.InfinityStaker;
 
   protected _listeners: InfinityStakerEventListener[] = [];
 

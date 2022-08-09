@@ -38,6 +38,7 @@ export class InfinityExchangeContract extends DbSyncedContract {
   ];
 
   static discriminator: Contracts = Contracts.InfinityExchange;
+  discriminator: Contracts = Contracts.InfinityExchange;
 
   protected _listeners: InfinityExchangeEventListener[] = [];
 

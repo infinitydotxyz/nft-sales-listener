@@ -27,10 +27,10 @@ export abstract class DbSyncedContract extends Contract {
     provider: ethers.providers.StaticJsonRpcProvider,
     abi: ethers.ContractInterface,
     blockProvider: BlockProvider,
-    public readonly chainId: ChainId,
+    chainId: ChainId,
     private firebase: Firebase
   ) {
-    super(address, provider, abi, blockProvider);
+    super(address, provider, abi, blockProvider, chainId);
   }
 
   public async sync() {

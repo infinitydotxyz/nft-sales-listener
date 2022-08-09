@@ -1,4 +1,9 @@
-import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc } from './config';
+import {
+  infinityExchangeMainnetDesc,
+  wyvernExchangeMainnetDesc,
+  seaportExchangeMainnetDesc,
+  infinityStakerMainnetDesc
+} from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
 import { CollectionProvider } from './models/collection-provider';
@@ -7,8 +12,9 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
 import { Providers } from './models/Providers';
 import { Firebase } from './database/Firebase';
+import { ContractType } from './models/contracts/types';
 
-function main() {
+async function main() {
   const providers = new Providers();
   const firebase = new Firebase();
   const contractFactory = new ContractFactory(providers, firebase);
@@ -35,31 +41,41 @@ function main() {
     mainnetTxReceiptProvider,
     protocolFeeProvider
   );
+  // const infinityStakerMainnet = contractFactory.create(
+  //   infinityStakerMainnetDesc,
+  //   handler,
+  //   mainnetTxReceiptProvider,
+  //   protocolFeeProvider
+  // );
 
-  infinityExchangeMainnet
-    .sync()
-    .then(() => {
-      console.log('Infinity Exchange Mainnet backfilled');
+  const contracts = [
+    infinityExchangeMainnet,
+    wyvernExchangeMainnet,
+    seaportExchangeMainnet
+    // infinityStakerMainnet // TODO uncomment this when staker is deployed to mainnet
+  ];
+  await syncContracts(contracts);
+  console.log(`All contracts synced`);
+}
+
+function syncContracts(contracts: ContractType[]) {
+  return Promise.all(
+    contracts.map((contract) => {
+      return new Promise<void>((resolve) => {
+        const contractName = `${contract.discriminator} ChainId: ${contract.chainId}`;
+        contract
+          .sync()
+          .then(() => {
+            console.log(`${contractName} backfilled`);
+          })
+          .catch((err) => {
+            console.error(contractName, err);
+          }).finally(() => {
+            resolve();
+          })
+      });
     })
-    .catch((err) => {
-      console.error(err);
-    });
-  wyvernExchangeMainnet
-    .sync()
-    .then(() => {
-      console.log('Wyvern Exchange Mainnet backfilled');
-    })
-    .catch((err) => {
-      console.error(err);
-    });
-  seaportExchangeMainnet
-    .sync()
-    .then(() => {
-      console.log('Seaport Exchange Mainnet backfilled');
-    })
-    .catch((err) => {
-      console.error(err);
-    });
+  );
 }
 
 void main();
