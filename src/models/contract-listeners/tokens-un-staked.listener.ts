@@ -3,9 +3,9 @@ import { StakerEventType, TokensUnStakedEvent } from '@infinityxyz/lib/types/cor
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
-import { ContractListener, Events } from './contract-listener.abstract';
+import { InfinityStakerListener } from './infinity-staker.listener.abstract';
 
-export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent, Events<TokensUnStakedEvent>> {
+export class TokensUnStakedListener extends InfinityStakerListener<TokensUnStakedEvent> {
   public readonly eventName = 'UnStaked';
   protected _eventFilter: ethers.EventFilter;
 
@@ -27,6 +27,8 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
     const user = trimLowerCase(String(eventData[0]));
     const amount = BigNumber.from(String(eventData[1])).toString();
     const block = await this._blockProvider.getBlock(event.blockNumber);
+    const userPower = await this.getUserStakePower(user, event.blockNumber);
+    const userStake = await this.getUserStakeInfo(user, event.blockNumber);
     return {
       discriminator: StakerEventType.UnStaked,
       user,
@@ -35,7 +37,10 @@ export class TokensUnStakedListener extends ContractListener<TokensUnStakedEvent
       chainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
-      timestamp: block.timestamp * 1000
+      timestamp: block.timestamp * 1000,
+      stakeInfo: userStake,
+      stakePower: userPower,
+      isAggregated: false
     };
   }
 }

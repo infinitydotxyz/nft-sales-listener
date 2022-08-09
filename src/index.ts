@@ -1,9 +1,4 @@
-import {
-  infinityExchangeMainnetDesc,
-  wyvernExchangeMainnetDesc,
-  seaportExchangeMainnetDesc,
-  infinityStakerMainnetDesc
-} from './config';
+import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc } from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
 import { CollectionProvider } from './models/collection-provider';

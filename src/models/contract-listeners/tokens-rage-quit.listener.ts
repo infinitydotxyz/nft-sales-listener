@@ -3,9 +3,9 @@ import { RageQuitEvent, StakerEventType } from '@infinityxyz/lib/types/core/Stak
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
-import { ContractListener, Events } from './contract-listener.abstract';
+import { InfinityStakerListener } from './infinity-staker.listener.abstract';
 
-export class RageQuitListener extends ContractListener<RageQuitEvent, Events<RageQuitEvent>> {
+export class RageQuitListener extends InfinityStakerListener<RageQuitEvent> {
   public readonly eventName = 'RageQuit';
   protected _eventFilter: ethers.EventFilter;
 
@@ -28,6 +28,8 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
     const amountReceived = BigNumber.from(String(eventData[1])).toString();
     const penaltyAmount = BigNumber.from(String(eventData[2])).toString();
     const block = await this._blockProvider.getBlock(event.blockNumber);
+    const userPower = await this.getUserStakePower(user, event.blockNumber);
+    const userStake = await this.getUserStakeInfo(user, event.blockNumber);
     return {
       discriminator: StakerEventType.RageQuit,
       user,
@@ -37,7 +39,10 @@ export class RageQuitListener extends ContractListener<RageQuitEvent, Events<Rag
       txHash: event.transactionHash,
       stakerContractAddress: this._contract.address,
       chainId: this.chainId,
-      timestamp: block.timestamp * 1000
+      timestamp: block.timestamp * 1000,
+      stakeInfo: userStake,
+      stakePower: userPower,
+      isAggregated: false
     };
   }
 }

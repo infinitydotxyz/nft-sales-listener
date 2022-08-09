@@ -4,7 +4,7 @@ import { StakerEventType, TokensStakedEvent } from '@infinityxyz/lib/types/core/
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
-import { ContractListener, Events } from './contract-listener.abstract';
+import { InfinityStakerListener } from './infinity-staker.listener.abstract';
 
 const contractStakeDurationToEnum: Record<number, StakeDuration> = {
   [0]: StakeDuration.X0,
@@ -13,7 +13,7 @@ const contractStakeDurationToEnum: Record<number, StakeDuration> = {
   [3]: StakeDuration.X12
 };
 
-export class TokensStakedListener extends ContractListener<TokensStakedEvent, Events<TokensStakedEvent>> {
+export class TokensStakedListener extends InfinityStakerListener<TokensStakedEvent> {
   public readonly eventName = 'Staked';
   protected _eventFilter: ethers.EventFilter;
 
@@ -41,6 +41,8 @@ export class TokensStakedListener extends ContractListener<TokensStakedEvent, Ev
       return null;
     }
     const block = await this._blockProvider.getBlock(event.blockNumber);
+    const userPower = await this.getUserStakePower(user, event.blockNumber);
+    const userStake = await this.getUserStakeInfo(user, event.blockNumber);
     return {
       discriminator: StakerEventType.Staked,
       user,
@@ -50,7 +52,10 @@ export class TokensStakedListener extends ContractListener<TokensStakedEvent, Ev
       chainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
-      timestamp: block.timestamp * 1000
+      timestamp: block.timestamp * 1000,
+      stakeInfo: userStake,
+      stakePower: userPower,
+      isAggregated: false
     };
   }
 }
