@@ -40,7 +40,7 @@ export class TokensUnStakedListener extends InfinityStakerListener<TokensUnStake
       timestamp: block.timestamp * 1000,
       stakeInfo: userStake,
       stakePower: userPower,
-      isAggregated: false
+      processed: false
     };
   }
 }
