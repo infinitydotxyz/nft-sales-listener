@@ -42,7 +42,8 @@ export class RageQuitListener extends InfinityStakerListener<RageQuitEvent> {
       timestamp: block.timestamp * 1000,
       stakeInfo: userStake,
       stakePower: userPower,
-      processed: false
+      processed: false,
+      updatedAt: Date.now()
     };
   }
 }

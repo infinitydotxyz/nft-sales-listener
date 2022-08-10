@@ -55,7 +55,8 @@ export class TokensStakedListener extends InfinityStakerListener<TokensStakedEve
       timestamp: block.timestamp * 1000,
       stakeInfo: userStake,
       stakePower: userPower,
-      processed: false
+      processed: false,
+      updatedAt: Date.now()
     };
   }
 }
