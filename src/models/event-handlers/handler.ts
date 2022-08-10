@@ -175,7 +175,10 @@ export class EventHandler implements IEventHandler {
   }
 
   async protocolFeeUpdatedEvent(protocolFeeUpdated: ProtocolFeeUpdatedEvent): Promise<void> {
-    await this.firebase.db.collection('protocolFeeEvents').doc(protocolFeeUpdated.txHash).set(protocolFeeUpdated);
+    await this.firebase.db
+      .collection(firestoreConstants.PROTOCOL_FEE_EVENTS_COLL)
+      .doc(protocolFeeUpdated.txHash)
+      .set(protocolFeeUpdated);
   }
 
   private async saveSales(sales: NftSale[]): Promise<void> {

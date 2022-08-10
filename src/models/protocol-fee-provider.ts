@@ -6,6 +6,7 @@ import { Firebase } from '../database/Firebase';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { ProtocolFeeUpdatedEvent } from './contract-listeners/protocol-fee-updated.listener';
 import { Providers } from './providers';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 export type ProtocolFeeProps = Pick<ProtocolFeeUpdatedEvent, 'blockNumber' | 'transactionIndex' | 'protocolFeeBPS'>;
 
@@ -75,7 +76,7 @@ export class ProtocolFeeProvider {
   private _sync() {
     let isInitial = true;
     return new Promise<void>((resolve, reject) => {
-      this.firebase.db.collection('protocolFeeEvents').onSnapshot(
+      this.firebase.db.collection(firestoreConstants.PROTOCOL_FEE_EVENTS_COLL).onSnapshot(
         (snapshot) => {
           snapshot.docChanges().forEach((snap) => {
             const event = snap.doc.data() as ProtocolFeeUpdatedEvent | undefined;

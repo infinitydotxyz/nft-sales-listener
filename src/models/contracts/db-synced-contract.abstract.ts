@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Firebase } from '../../database/Firebase';
 import { ethers } from 'ethers';
 import { ContractListener, ContractListenerEvent } from '../contract-listeners/contract-listener.abstract';
@@ -121,7 +121,7 @@ export abstract class DbSyncedContract extends Contract {
   protected get contractRef() {
     const address = this.contract.address;
     const docId = trimLowerCase(`${this.chainId}:${address}`);
-    const contractDocRef = this.firebase.db.collection('_contractEvents').doc(docId);
+    const contractDocRef = this.firebase.db.collection(firestoreConstants.CONTRACT_EVENTS).doc(docId);
     return contractDocRef;
   }
 
