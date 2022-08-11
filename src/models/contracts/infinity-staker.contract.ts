@@ -19,7 +19,7 @@ export type InfinityStakerEventListenerConstructor =
   | typeof RageQuitListener;
 
 export class InfinityStakerContract extends DbSyncedContract {
-  static readonly listenerConstructors = [TokensUnStakedListener, TokensStakedListener];
+  static readonly listenerConstructors = [TokensUnStakedListener, TokensStakedListener, RageQuitListener];
 
   static discriminator: Contracts = Contracts.InfinityStaker;
   discriminator = Contracts.InfinityStaker;
