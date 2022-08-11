@@ -49,14 +49,17 @@ export class EventHandler implements IEventHandler {
   ) {}
 
   async tokensStakedEvent(event: TokensStakedEvent): Promise<void> {
+    console.log(`User: ${event.user} staked ${event.amount} tokens`);
     await this._saveStakerEvent(event);
   }
 
   async tokensUnStakedEvent(event: TokensUnStakedEvent): Promise<void> {
+    console.log(`User: ${event.user} un-staked ${event.amount} tokens`);
     await this._saveStakerEvent(event);
   }
 
   async tokensRageQuitEvent(event: RageQuitEvent): Promise<void> {
+    console.log(`User: ${event.user} rage quit. User received ${event.amount} tokens, and lost ${event.penaltyAmount} tokens`);
     await this._saveStakerEvent(event);
   }
 
@@ -65,8 +68,11 @@ export class EventHandler implements IEventHandler {
     try {
       await stakingLedgerRef.create(event);
     } catch (err) {
-      console.error(err);
-      // TODO handle checking if this is due to a duplicate event
+      if((err as any)?.code === 6) {
+        console.log(`Staker event already exists: ${event.txHash}`);
+      } else {
+        console.error(err);
+      }
     }
   }
 

@@ -9,6 +9,7 @@ import { InfinityExchangeContract } from './infinity-exchange.contract';
 import { OpenSeaContract } from './opensea.contract';
 import { SeaportContract } from './seaport.contract';
 import { ContractDescription, Contracts, ContractType } from './types';
+import { InfinityStakerContract } from './infinity-staker.contract';
 
 export class ContractFactory {
   constructor(private _providers: Providers, protected firebase: Firebase) {}
@@ -22,6 +23,7 @@ export class ContractFactory {
     const { address, chainId, type } = desc;
     const provider = this._providers.getProviderByChainId(chainId);
     const blockProvider = this._providers.getBlockProviderByChainId(chainId);
+    console.log(`Creating contract ${type.discriminator} at ${address}`);
     switch (type.discriminator) {
       case Contracts.InfinityExchange:
         return new InfinityExchangeContract(
@@ -55,6 +57,16 @@ export class ContractFactory {
           chainId,
           this.firebase,
           txReceiptProvider,
+          handler
+        );
+      case Contracts.InfinityStaker:
+        return new InfinityStakerContract(
+          provider,
+          address,
+          blockProvider,
+          InfinityStakerContract.listenerConstructors,
+          chainId,
+          this.firebase,
           handler
         );
 

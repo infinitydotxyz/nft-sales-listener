@@ -1,4 +1,4 @@
-import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc } from './config';
+import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc, infinityStakerMainnetDesc } from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
 import { CollectionProvider } from './models/collection-provider';
@@ -36,18 +36,18 @@ async function main() {
     mainnetTxReceiptProvider,
     protocolFeeProvider
   );
-  // const infinityStakerMainnet = contractFactory.create(
-  //   infinityStakerMainnetDesc,
-  //   handler,
-  //   mainnetTxReceiptProvider,
-  //   protocolFeeProvider
-  // );
+  const infinityStakerMainnet = contractFactory.create(
+    infinityStakerMainnetDesc,
+    handler,
+    mainnetTxReceiptProvider,
+    protocolFeeProvider
+  );
 
   const contracts = [
     infinityExchangeMainnet,
     wyvernExchangeMainnet,
-    seaportExchangeMainnet
-    // infinityStakerMainnet // TODO uncomment this when staker is deployed to mainnet
+    seaportExchangeMainnet,
+    infinityStakerMainnet
   ];
   await syncContracts(contracts);
   console.log(`All contracts synced`);
