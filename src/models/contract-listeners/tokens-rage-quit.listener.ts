@@ -38,7 +38,7 @@ export class RageQuitListener extends InfinityStakerListener<RageQuitEvent> {
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
       stakerContractAddress: this._contract.address,
-      chainId: this.chainId,
+      stakerContractChainId: this.chainId,
       timestamp: block.timestamp * 1000,
       stakeInfo: userStake,
       stakePower: userPower,

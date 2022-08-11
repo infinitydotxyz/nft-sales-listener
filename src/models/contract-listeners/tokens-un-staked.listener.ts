@@ -34,7 +34,7 @@ export class TokensUnStakedListener extends InfinityStakerListener<TokensUnStake
       user,
       amount,
       stakerContractAddress: this._contract.address,
-      chainId: this.chainId,
+      stakerContractChainId: this.chainId,
       blockNumber: event.blockNumber,
       txHash: event.transactionHash,
       timestamp: block.timestamp * 1000,
