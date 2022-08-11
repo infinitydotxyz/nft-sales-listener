@@ -59,7 +59,9 @@ export class EventHandler implements IEventHandler {
   }
 
   async tokensRageQuitEvent(event: RageQuitEvent): Promise<void> {
-    console.log(`User: ${event.user} rage quit. User received ${event.amount} tokens, and lost ${event.penaltyAmount} tokens`);
+    console.log(
+      `User: ${event.user} rage quit. User received ${event.amount} tokens, and lost ${event.penaltyAmount} tokens`
+    );
     await this._saveStakerEvent(event);
   }
 
@@ -68,7 +70,7 @@ export class EventHandler implements IEventHandler {
     try {
       await stakingLedgerRef.create(event);
     } catch (err) {
-      if((err as any)?.code === 6) {
+      if ((err as any)?.code === 6) {
         console.log(`Staker event already exists: ${event.txHash}`);
       } else {
         console.error(err);

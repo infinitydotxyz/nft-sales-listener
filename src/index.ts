@@ -1,4 +1,9 @@
-import { infinityExchangeMainnetDesc, wyvernExchangeMainnetDesc, seaportExchangeMainnetDesc, infinityStakerMainnetDesc } from './config';
+import {
+  infinityExchangeMainnetDesc,
+  wyvernExchangeMainnetDesc,
+  seaportExchangeMainnetDesc,
+  infinityStakerMainnetDesc
+} from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
 import { CollectionProvider } from './models/collection-provider';
@@ -43,12 +48,7 @@ async function main() {
     protocolFeeProvider
   );
 
-  const contracts = [
-    infinityExchangeMainnet,
-    wyvernExchangeMainnet,
-    seaportExchangeMainnet,
-    infinityStakerMainnet
-  ];
+  const contracts = [infinityExchangeMainnet, wyvernExchangeMainnet, seaportExchangeMainnet, infinityStakerMainnet];
   await syncContracts(contracts);
   console.log(`All contracts synced`);
 }
