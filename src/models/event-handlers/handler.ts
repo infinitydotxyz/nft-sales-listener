@@ -66,7 +66,11 @@ export class EventHandler implements IEventHandler {
   }
 
   protected async _saveStakerEvent(event: StakerEvents): Promise<void> {
-    const stakingLedgerRef = this.firebase.db.collection(firestoreConstants.STAKING_LEDGER_COLL).doc(event.txHash);
+    const stakingContractDocId = `${event.stakerContractChainId}:${event.stakerContractAddress}`;
+    const stakingContractRef = this.firebase.db
+      .collection(firestoreConstants.STAKING_CONTRACTS_COLL)
+      .doc(stakingContractDocId);
+    const stakingLedgerRef = stakingContractRef.collection(firestoreConstants.STAKING_LEDGER_COLL).doc(event.txHash);
     try {
       await stakingLedgerRef.create(event);
     } catch (err) {
