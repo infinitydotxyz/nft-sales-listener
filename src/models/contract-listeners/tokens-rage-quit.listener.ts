@@ -1,8 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
-import { StakeAmount } from '@infinityxyz/lib/types/core/StakeAmount';
 import { RageQuitEvent, StakerEventType } from '@infinityxyz/lib/types/core/StakerEvents';
-import { getStakePowerPerToken, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
-import { formatEth, trimLowerCase } from '@infinityxyz/lib/utils/formatters';
+import { getStakePowerPerToken, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
+import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
 import { InfinityStakerListener } from './infinity-staker.listener.abstract';
