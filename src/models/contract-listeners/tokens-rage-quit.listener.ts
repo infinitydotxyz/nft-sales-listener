@@ -1,6 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
+import { StakeAmount } from '@infinityxyz/lib/types/core/StakeAmount';
 import { RageQuitEvent, StakerEventType } from '@infinityxyz/lib/types/core/StakerEvents';
-import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
+import { getStakePowerPerToken, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
+import { formatEth, trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
 import { InfinityStakerListener } from './infinity-staker.listener.abstract';
@@ -30,6 +32,10 @@ export class RageQuitListener extends InfinityStakerListener<RageQuitEvent> {
     const block = await this._blockProvider.getBlock(event.blockNumber);
     const userPower = await this.getUserStakePower(user, event.blockNumber);
     const userStake = await this.getUserStakeInfo(user, event.blockNumber);
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+      this.chainId,
+      this._contract.address
+    );
     return {
       discriminator: StakerEventType.RageQuit,
       user,
@@ -43,7 +49,10 @@ export class RageQuitListener extends InfinityStakerListener<RageQuitEvent> {
       stakeInfo: userStake,
       stakePower: userPower,
       processed: false,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      tokenContractAddress,
+      tokenContractChainId,
+      stakePowerPerToken: getStakePowerPerToken(userStake, userPower)
     };
   }
 }

@@ -1,5 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { StakerEventType, TokensUnStakedEvent } from '@infinityxyz/lib/types/core/StakerEvents';
+import { getStakePowerPerToken, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { BigNumber, ethers } from 'ethers';
 import { BlockProvider } from '../block-provider';
@@ -29,6 +30,10 @@ export class TokensUnStakedListener extends InfinityStakerListener<TokensUnStake
     const block = await this._blockProvider.getBlock(event.blockNumber);
     const userPower = await this.getUserStakePower(user, event.blockNumber);
     const userStake = await this.getUserStakeInfo(user, event.blockNumber);
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+      this.chainId,
+      this._contract.address
+    );
     return {
       discriminator: StakerEventType.UnStaked,
       user,
@@ -41,7 +46,10 @@ export class TokensUnStakedListener extends InfinityStakerListener<TokensUnStake
       stakeInfo: userStake,
       stakePower: userPower,
       processed: false,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      tokenContractAddress,
+      tokenContractChainId,
+      stakePowerPerToken: getStakePowerPerToken(userStake, userPower)
     };
   }
 }
