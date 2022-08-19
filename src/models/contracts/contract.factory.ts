@@ -18,7 +18,7 @@ export class ContractFactory {
     desc: ContractDescription,
     handler: EventHandler,
     txReceiptProvider: TransactionReceiptProvider,
-    protocolFeeProvider: ProtocolFeeProvider
+    protocolFeeProvider: ProtocolFeeProvider,
   ): ContractType {
     const { address, chainId, type } = desc;
     const provider = this._providers.getProviderByChainId(chainId);
@@ -35,7 +35,8 @@ export class ContractFactory {
           this.firebase,
           txReceiptProvider,
           protocolFeeProvider,
-          handler
+          handler,
+          desc.numBlocksToBackfill
         );
       case Contracts.Seaport:
         return new SeaportContract(
@@ -46,7 +47,8 @@ export class ContractFactory {
           chainId,
           this.firebase,
           txReceiptProvider,
-          handler
+          handler,
+          desc.numBlocksToBackfill
         );
       case Contracts.OpenSea:
         return new OpenSeaContract(
@@ -57,7 +59,8 @@ export class ContractFactory {
           chainId,
           this.firebase,
           txReceiptProvider,
-          handler
+          handler,
+          desc.numBlocksToBackfill
         );
       case Contracts.InfinityStaker:
         return new InfinityStakerContract(
@@ -67,7 +70,8 @@ export class ContractFactory {
           InfinityStakerContract.listenerConstructors,
           chainId,
           this.firebase,
-          handler
+          handler,
+          desc.numBlocksToBackfill
         );
 
       default:

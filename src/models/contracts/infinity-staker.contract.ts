@@ -33,9 +33,10 @@ export class InfinityStakerContract extends DbSyncedContract {
     listeners: InfinityStakerEventListenerConstructor[],
     chainId: ChainId,
     firebase: Firebase,
-    private _handler: EventHandler
+    private _handler: EventHandler,
+    numBlocksToBackfill?: number
   ) {
-    super(address, provider, InfinityStakerABI, blockProvider, chainId, firebase);
+    super(address, provider, InfinityStakerABI, blockProvider, chainId, firebase, numBlocksToBackfill);
 
     for (const listener of listeners) {
       this._listeners.push(new listener(this.contract, this.blockProvider, chainId));

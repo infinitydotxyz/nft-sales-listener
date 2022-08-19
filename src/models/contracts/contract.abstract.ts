@@ -14,7 +14,8 @@ export abstract class Contract {
     provider: ethers.providers.StaticJsonRpcProvider,
     abi: ethers.ContractInterface,
     protected blockProvider: BlockProvider,
-    public readonly chainId: ChainId
+    public readonly chainId: ChainId,
+    protected _numBlocksToBackfill?: number
   ) {
     this.contract = new ethers.Contract(address, abi, provider);
   }
@@ -38,6 +39,15 @@ export abstract class Contract {
     }
   }
 
+  protected async getBackfillFromBlockNumber(): Promise<number> {
+    if(typeof this._numBlocksToBackfill === 'number') {
+      const currentBlock = await this.contract.provider.getBlockNumber();
+      const blockToBackfillFrom = currentBlock - this._numBlocksToBackfill;
+      return blockToBackfillFrom;
+    }
+    return 0;
+  }
+
   public async backfill(data: { [eventName: string]: DbSyncedContractEvent }) {
     const off = this.registerListeners(ContractListenerEvent.BackfillEvent);
 
@@ -45,8 +55,9 @@ export abstract class Contract {
       const listenerData = data[listener.eventName];
       let fromBlock = listenerData?.lastBlockUpdated;
       if (typeof fromBlock !== 'number' || fromBlock < 0) {
-        fromBlock = 0;
+        fromBlock = await this.getBackfillFromBlockNumber();
       }
+      console.log(`Listener: ${listener.eventName} backfilling from ${fromBlock}`)
       return listener.backfill(fromBlock);
     });
 

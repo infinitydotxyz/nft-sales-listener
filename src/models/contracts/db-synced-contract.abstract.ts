@@ -28,9 +28,10 @@ export abstract class DbSyncedContract extends Contract {
     abi: ethers.ContractInterface,
     blockProvider: BlockProvider,
     chainId: ChainId,
-    private firebase: Firebase
+    private firebase: Firebase,
+    numBlocksToBackfill?: number
   ) {
-    super(address, provider, abi, blockProvider, chainId);
+    super(address, provider, abi, blockProvider, chainId, numBlocksToBackfill);
   }
 
   public async sync() {

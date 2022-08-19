@@ -17,13 +17,15 @@ export const infinityExchangeMainnetDesc: ContractDescription = {
 export const wyvernExchangeMainnetDesc: ContractDescription = {
   address: WYVERN_EXCHANGE_ADDRESS,
   chainId: ChainId.Mainnet,
-  type: OpenSeaContract
+  type: OpenSeaContract,
+  numBlocksToBackfill: 0
 };
 
 export const seaportExchangeMainnetDesc: ContractDescription = {
   address: SEAPORT_ADDRESS,
   chainId: ChainId.Mainnet,
-  type: SeaportContract
+  type: SeaportContract,
+  numBlocksToBackfill: 0
 };
 
 export const infinityStakerMainnetDesc: ContractDescription = {

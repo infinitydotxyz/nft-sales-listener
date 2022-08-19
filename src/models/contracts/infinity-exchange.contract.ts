@@ -51,9 +51,10 @@ export class InfinityExchangeContract extends DbSyncedContract {
     firebase: Firebase,
     txReceiptProvider: TransactionReceiptProvider,
     protocolFeeProvider: ProtocolFeeProvider,
-    private _handler: EventHandler
+    private _handler: EventHandler,
+    numBlocksToBackfill?: number
   ) {
-    super(address, provider, InfinityExchangeABI, blockProvider, chainId, firebase);
+    super(address, provider, InfinityExchangeABI, blockProvider, chainId, firebase, numBlocksToBackfill);
 
     for (const listener of listeners) {
       this._listeners.push(

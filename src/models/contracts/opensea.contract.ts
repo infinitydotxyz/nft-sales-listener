@@ -29,9 +29,10 @@ export class OpenSeaContract extends DbSyncedContract {
     chainId: ChainId,
     firebase: Firebase,
     txReceiptProvider: TransactionReceiptProvider,
-    private _handler: EventHandler
+    private _handler: EventHandler,
+    numBlocksToBackfill?: number
   ) {
-    super(address, provider, WyvernExchangeABI, blockProvider, chainId, firebase);
+    super(address, provider, WyvernExchangeABI, blockProvider, chainId, firebase, numBlocksToBackfill);
 
     for (const listener of listeners) {
       this._listeners.push(new listener(this.contract, this.blockProvider, chainId, txReceiptProvider));

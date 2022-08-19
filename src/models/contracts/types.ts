@@ -15,6 +15,7 @@ export interface ContractDescription {
   address: string;
   chainId: ChainId;
   type: ContractConstructors;
+  numBlocksToBackfill?: number;
 }
 
 export enum Contracts {
