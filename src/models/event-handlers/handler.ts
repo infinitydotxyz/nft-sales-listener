@@ -197,7 +197,7 @@ export class EventHandler implements IEventHandler {
     if (!sales.length || !sales[0]) {
       return;
     }
-    const feedEvents = await this.getFeedSaleEvents(sales);
+    const events = await this.getFeedSaleEvents(sales);
     const txHash = sales[0]?.txHash;
     try {
       await this.firebase.db.runTransaction(async (tx) => {
@@ -211,15 +211,16 @@ export class EventHandler implements IEventHandler {
         }
 
         const salesCollectionRef = this.firebase.db.collection(firestoreConstants.SALES_COLL);
-        for (const sale of sales) {
-          const docRef = salesCollectionRef.doc();
-          tx.create(docRef, sale);
-        }
-
         const feedCollectionRef = this.firebase.db.collection(firestoreConstants.FEED_COLL);
-        for (const feedEvent of feedEvents) {
-          const docRef = feedCollectionRef.doc();
-          tx.create(docRef, feedEvent);
+
+        for (const { sale, feedEvent } of events) {
+          if (feedEvent) {
+            const feedDocRef = feedCollectionRef.doc();
+            tx.create(feedDocRef, feedEvent);
+            sale.isFeedUpdated = true;
+          }
+          const saleDocRef = salesCollectionRef.doc();
+          tx.create(saleDocRef, sale);
         }
       });
     } catch (err: any) {
@@ -232,7 +233,7 @@ export class EventHandler implements IEventHandler {
     }
   }
 
-  private async getFeedSaleEvents(sales: NftSale[]): Promise<NftSaleEvent[]> {
+  private async getFeedSaleEvents(sales: NftSale[]): Promise<{ sale: NftSale; feedEvent: NftSaleEvent | undefined }[]> {
     const nftRefs = sales.map((sale) => {
       const nftRef = this.firebase.db
         .collection(firestoreConstants.COLLECTIONS_COLL)
@@ -251,7 +252,7 @@ export class EventHandler implements IEventHandler {
       [buyer, seller].map((item) => getUserDisplayName(item, chainId, provider))
     );
 
-    const result = await Promise.allSettled(
+    const promiseSettledResult = await Promise.allSettled(
       sales.map(async (item, index) => {
         const nftSnapshot = nftSnapshots[index];
         const nft: Partial<Token> = (nftSnapshot.data() ?? {}) as Partial<Token>;
@@ -312,12 +313,16 @@ export class EventHandler implements IEventHandler {
       })
     );
 
-    const eventsResolved = (
-      result.filter((event) => event.status === 'fulfilled') as PromiseFulfilledResult<NftSaleEvent>[]
-    ).map((event) => event.value);
-    const saleEvents = eventsResolved.filter((event) => !!event);
+    const results = promiseSettledResult.map((item, index) => {
+      const sale = sales[index];
+      const feedEvent = item.status === 'fulfilled' ? item.value : undefined;
+      return {
+        sale,
+        feedEvent
+      };
+    });
 
-    return saleEvents;
+    return results;
   }
 
   private async updateOrderStatus(
@@ -381,7 +386,8 @@ export class EventHandler implements IEventHandler {
           source: preParsedSales.source as SaleSource.Infinity,
           tokenStandard: preParsedSale.tokenStandard,
           isAggregated: false,
-          isDeleted: false
+          isDeleted: false,
+          isFeedUpdated: false
         };
 
         const totalPrice = convertWeiToEther(preParsedSale.price);
@@ -439,7 +445,8 @@ export class EventHandler implements IEventHandler {
         source: preParsedSale.source as SaleSource.OpenSea | SaleSource.Seaport,
         tokenStandard: sale.tokenStandard,
         isAggregated: false,
-        isDeleted: false
+        isDeleted: false,
+        isFeedUpdated: false
       };
       sales.push(nftSale);
     }
