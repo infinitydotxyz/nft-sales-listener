@@ -40,7 +40,7 @@ export abstract class Contract {
   }
 
   protected async getBackfillFromBlockNumber(): Promise<number> {
-    if(typeof this._numBlocksToBackfill === 'number') {
+    if (typeof this._numBlocksToBackfill === 'number') {
       const currentBlock = await this.contract.provider.getBlockNumber();
       const blockToBackfillFrom = currentBlock - this._numBlocksToBackfill;
       return blockToBackfillFrom;
@@ -57,7 +57,7 @@ export abstract class Contract {
       if (typeof fromBlock !== 'number' || fromBlock < 0) {
         fromBlock = await this.getBackfillFromBlockNumber();
       }
-      console.log(`Listener: ${listener.eventName} backfilling from ${fromBlock}`)
+      console.log(`Listener: ${listener.eventName} backfilling from ${fromBlock}`);
       return listener.backfill(fromBlock);
     });
 

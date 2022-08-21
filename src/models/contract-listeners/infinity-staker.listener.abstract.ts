@@ -31,19 +31,19 @@ export abstract class InfinityStakerListener<T extends { blockNumber: number }> 
     const [x12Amount, x12Timestamp] = x12;
 
     const stakeInfo: StakeInfo = {
-      [StakeDuration.X0]: {
+      [StakeDuration.None]: {
         amount: BigNumber.from(x0Amount).toString(),
         timestamp: BigNumber.from(x0Timestamp).toNumber() * 1000
       },
-      [StakeDuration.X3]: {
+      [StakeDuration.ThreeMonths]: {
         amount: BigNumber.from(x3Amount).toString(),
         timestamp: BigNumber.from(x3Timestamp).toNumber() * 1000
       },
-      [StakeDuration.X6]: {
+      [StakeDuration.SixMonths]: {
         amount: BigNumber.from(x6Amount).toString(),
         timestamp: BigNumber.from(x6Timestamp).toNumber() * 1000
       },
-      [StakeDuration.X12]: {
+      [StakeDuration.TwelveMonths]: {
         amount: BigNumber.from(x12Amount).toString(),
         timestamp: BigNumber.from(x12Timestamp).toNumber() * 1000
       }

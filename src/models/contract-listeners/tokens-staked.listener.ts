@@ -7,10 +7,10 @@ import { BlockProvider } from '../block-provider';
 import { InfinityStakerListener } from './infinity-staker.listener.abstract';
 
 const contractStakeDurationToEnum: Record<number, StakeDuration> = {
-  [0]: StakeDuration.X0,
-  [1]: StakeDuration.X3,
-  [2]: StakeDuration.X6,
-  [3]: StakeDuration.X12
+  [0]: StakeDuration.None,
+  [1]: StakeDuration.ThreeMonths,
+  [2]: StakeDuration.SixMonths,
+  [3]: StakeDuration.TwelveMonths
 };
 
 export class TokensStakedListener extends InfinityStakerListener<TokensStakedEvent> {

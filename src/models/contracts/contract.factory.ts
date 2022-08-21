@@ -18,7 +18,7 @@ export class ContractFactory {
     desc: ContractDescription,
     handler: EventHandler,
     txReceiptProvider: TransactionReceiptProvider,
-    protocolFeeProvider: ProtocolFeeProvider,
+    protocolFeeProvider: ProtocolFeeProvider
   ): ContractType {
     const { address, chainId, type } = desc;
     const provider = this._providers.getProviderByChainId(chainId);
