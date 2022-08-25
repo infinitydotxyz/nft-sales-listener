@@ -1,5 +1,4 @@
-import { logger } from 'container';
-import * as uuid from 'uuid';
+import { nanoid } from 'nanoid';
 import firebaseAdmin from 'firebase-admin';
 
 export class FirestoreDistributedCounter {
@@ -12,10 +11,7 @@ export class FirestoreDistributedCounter {
    * @param doc A reference to a document with a counter field.
    * @param field A path to a counter field in the above document.
    */
-  constructor(
-    private doc: FirebaseFirestore.DocumentReference,
-    private field: string
-  ) {
+  constructor(private doc: FirebaseFirestore.DocumentReference, private field: string) {
     this.shardsRef = this.doc.collection(this.SHARD_COLLECTION_ID);
   }
 
@@ -26,12 +22,12 @@ export class FirestoreDistributedCounter {
       .reverse()
       .reduce((value, name) => ({ [name]: value }), increment);
 
-    const shardId = uuid.v4();
+    const shardId = nanoid();
     this.shardsRef
       .doc(shardId)
       .set(update, { merge: true })
       .catch((err) => {
-        logger.error('Error updating firestore distributed counter shard', err);
+        console.error('Error updating firestore distributed counter shard', err);
       });
   }
 }

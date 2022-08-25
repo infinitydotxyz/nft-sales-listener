@@ -21,7 +21,6 @@
         "emitDecoratorMetadata": true,
 
         "outDir": "./dist",
-        "baseUrl": "./src",
     },
 
     "include": ["src/"]
