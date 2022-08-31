@@ -38,7 +38,7 @@ import { CollectionProvider } from '../../models/collection-provider';
 import { Order } from './order';
 import { OrderItem } from './order-item';
 import { EventHandler as IEventHandler } from './types';
-import { Providers } from '../../models/Providers';
+import { Providers } from '../providers';
 import { Firebase } from '../../database/Firebase';
 
 export class EventHandler implements IEventHandler {
