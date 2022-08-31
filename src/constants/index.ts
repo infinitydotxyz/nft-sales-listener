@@ -1,6 +1,7 @@
 export * from './wyvern-constants';
 
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
+export const MAX_UNCLE_ABLE_BLOCKS = 6;
 
 export const FB_STORAGE_BUCKET = 'infinity-static';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
