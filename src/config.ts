@@ -25,7 +25,7 @@ export const seaportExchangeMainnetDesc: ContractDescription = {
   address: SEAPORT_ADDRESS,
   chainId: ChainId.Mainnet,
   type: SeaportContract,
-  numBlocksToBackfill: 0
+  numBlocksToBackfill: 1000000
 };
 
 export const infinityStakerMainnetDesc: ContractDescription = {
