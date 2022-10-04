@@ -2,7 +2,8 @@ import {
   infinityExchangeMainnetDesc,
   wyvernExchangeMainnetDesc,
   seaportExchangeMainnetDesc,
-  infinityStakerMainnetDesc
+  infinityStakerMainnetDesc,
+  infinityStakerMainnetDescTest
 } from './config';
 import { ContractFactory } from './models/contracts/contract.factory';
 import { EventHandler } from './models/event-handlers/handler';
@@ -10,7 +11,7 @@ import { CollectionProvider } from './models/collection-provider';
 import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
-import { Providers } from './models/providers';
+import { Providers } from './models/Providers';
 import { Firebase } from './database/Firebase';
 import { ContractType } from './models/contracts/types';
 
@@ -41,6 +42,13 @@ async function main() {
     mainnetTxReceiptProvider,
     protocolFeeProvider
   );
+  const infinityStakerMainnetTest = contractFactory.create(
+    infinityStakerMainnetDescTest,
+    handler,
+    mainnetTxReceiptProvider,
+    protocolFeeProvider
+  );
+
   const infinityStakerMainnet = contractFactory.create(
     infinityStakerMainnetDesc,
     handler,
@@ -48,7 +56,13 @@ async function main() {
     protocolFeeProvider
   );
 
-  const contracts = [infinityExchangeMainnet, wyvernExchangeMainnet, seaportExchangeMainnet, infinityStakerMainnet];
+  const contracts = [
+    infinityExchangeMainnet,
+    wyvernExchangeMainnet,
+    seaportExchangeMainnet,
+    infinityStakerMainnet,
+    infinityStakerMainnetTest
+  ];
   await syncContracts(contracts);
   console.log(`All contracts synced`);
 }
