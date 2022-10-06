@@ -11,7 +11,7 @@ import { CollectionProvider } from './models/collection-provider';
 import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
-import { Providers } from './models/Providers';
+import { Providers } from './models/providers';
 import { Firebase } from './database/Firebase';
 import { ContractType } from './models/contracts/types';
 
