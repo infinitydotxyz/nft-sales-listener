@@ -38,7 +38,7 @@ import { CollectionProvider } from '../../models/collection-provider';
 import { Order } from './order';
 import { OrderItem } from './order-item';
 import { EventHandler as IEventHandler } from './types';
-import { Providers } from '../providers';
+import { Providers } from '../Providers';
 import { Firebase } from '../../database/Firebase';
 
 export class EventHandler implements IEventHandler {
@@ -215,6 +215,7 @@ export class EventHandler implements IEventHandler {
 
         for (const { sale, feedEvent } of events) {
           if (feedEvent) {
+            console.log(feedEvent);
             const feedDocRef = feedCollectionRef.doc();
             tx.create(feedDocRef, feedEvent);
             sale.isFeedUpdated = true;
