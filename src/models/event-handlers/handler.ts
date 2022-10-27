@@ -215,7 +215,6 @@ export class EventHandler implements IEventHandler {
 
         for (const { sale, feedEvent } of events) {
           if (feedEvent) {
-            console.log(feedEvent);
             const feedDocRef = feedCollectionRef.doc();
             tx.create(feedDocRef, feedEvent);
             sale.isFeedUpdated = true;
