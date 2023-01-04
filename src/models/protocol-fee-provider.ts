@@ -5,7 +5,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { Firebase } from '../database/Firebase';
 import { BigNumber, BigNumberish, ethers } from 'ethers';
 import { ProtocolFeeUpdatedEvent } from './contract-listeners/protocol-fee-updated.listener';
-import { Providers } from './providers';
+import { Providers } from './Providers';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 export type ProtocolFeeProps = Pick<ProtocolFeeUpdatedEvent, 'blockNumber' | 'transactionIndex' | 'protocolFeeBPS'>;
