@@ -4,7 +4,6 @@
 import {
   ChainId,
   EtherscanLinkType,
-  ExternalNftSale,
   InfinityLinkType,
   InfinityNftSale,
   NftSale,
@@ -25,21 +24,21 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { ETHEREUM_WETH_ADDRESS, firestoreConstants, NULL_ADDRESS } from '@infinityxyz/lib/utils/constants';
-import FirestoreBatchHandler from '../../database/FirestoreBatchHandler';
 import { BigNumber } from 'ethers';
-import { PreParsedInfinityNftSale, PreParsedMultipleNftSale, PreParseInfinityMultipleNftSale } from '../../types';
+import { Firebase } from '../../database/Firebase';
+import FirestoreBatchHandler from '../../database/FirestoreBatchHandler';
+import { CollectionProvider } from '../../models/collection-provider';
+import { PreParsedInfinityNftSale, PreParseInfinityMultipleNftSale } from '../../types';
 import { convertWeiToEther } from '../../utils';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from '../contract-listeners/match-order.listener';
 import { ProtocolFeeUpdatedEvent } from '../contract-listeners/protocol-fee-updated.listener';
 import { TakeOrderBundleEvent } from '../contract-listeners/take-order.listener';
-import { CollectionProvider } from '../../models/collection-provider';
+import { Providers } from '../Providers';
 import { Order } from './order';
 import { OrderItem } from './order-item';
 import { EventHandler as IEventHandler } from './types';
-import { Providers } from '../Providers';
-import { Firebase } from '../../database/Firebase';
 
 export class EventHandler implements IEventHandler {
   constructor(
@@ -95,14 +94,6 @@ export class EventHandler implements IEventHandler {
       console.log(`Found: ${orders.size} orders to update for cancel all`);
       const batchHandler = new FirestoreBatchHandler(this.firebase);
       for (const orderDoc of orders.docs) {
-        // update counters
-        try {
-          const order = new Order(orderDoc.data() as FirestoreOrder, this.firebase);
-          order.updateOrderCounters();
-        } catch (err) {
-          console.error('Error updating order counters on cancel all orders', err);
-        }
-
         // update order
         const orderRef = orderDoc.ref;
         batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
@@ -135,14 +126,6 @@ export class EventHandler implements IEventHandler {
           .get();
 
         for (const orderDoc of orders.docs) {
-          // update counters
-          try {
-            const order = new Order(orderDoc.data() as FirestoreOrder, this.firebase);
-            order.updateOrderCounters();
-          } catch (err) {
-            console.error('Error updating order counters on cancel multiple orders', err);
-          }
-
           // update order
           const orderRef = orderDoc.ref;
           batchHandler.add(orderRef, { orderStatus: OBOrderStatus.Invalid }, { merge: true });
@@ -181,11 +164,6 @@ export class EventHandler implements IEventHandler {
     await this.saveSales(sales);
   }
 
-  async nftSalesEvent(preParsedSale: PreParsedMultipleNftSale): Promise<void> {
-    const parsedOrder = this.parseSaleOrder(preParsedSale);
-    await this.saveSales(parsedOrder);
-  }
-
   async protocolFeeUpdatedEvent(protocolFeeUpdated: ProtocolFeeUpdatedEvent): Promise<void> {
     await this.firebase.db
       .collection(firestoreConstants.PROTOCOL_FEE_EVENTS_COLL)
@@ -211,14 +189,8 @@ export class EventHandler implements IEventHandler {
         }
 
         const salesCollectionRef = this.firebase.db.collection(firestoreConstants.SALES_COLL);
-        const feedCollectionRef = this.firebase.db.collection(firestoreConstants.FEED_COLL);
 
-        for (const { sale, feedEvent } of events) {
-          if (feedEvent) {
-            const feedDocRef = feedCollectionRef.doc();
-            tx.create(feedDocRef, feedEvent);
-            sale.isFeedUpdated = true;
-          }
+        for (const { sale } of events) {
           const saleDocRef = salesCollectionRef.doc();
           tx.create(saleDocRef, sale);
         }
@@ -417,40 +389,6 @@ export class EventHandler implements IEventHandler {
         }
       }
     }
-    return sales;
-  }
-
-  protected parseSaleOrder(preParsedSale: PreParsedMultipleNftSale): NftSale[] {
-    if (
-      preParsedSale.paymentToken !== NULL_ADDRESS &&
-      trimLowerCase(preParsedSale.paymentToken) !== ETHEREUM_WETH_ADDRESS
-    ) {
-      return [];
-    }
-    const sales: NftSale[] = [];
-    for (const sale of preParsedSale.sales) {
-      const totalPrice = convertWeiToEther(sale.price);
-      const nftSale: ExternalNftSale = {
-        chainId: preParsedSale.chainId,
-        txHash: trimLowerCase(preParsedSale.txHash),
-        blockNumber: preParsedSale.blockNumber,
-        timestamp: preParsedSale.timestamp,
-        collectionAddress: trimLowerCase(sale.collectionAddress),
-        tokenId: sale.tokenId,
-        price: totalPrice / sale.quantity,
-        paymentToken: trimLowerCase(preParsedSale.paymentToken),
-        buyer: trimLowerCase(sale.buyer),
-        seller: trimLowerCase(sale.seller),
-        quantity: sale.quantity,
-        source: preParsedSale.source as SaleSource.OpenSea | SaleSource.Seaport,
-        tokenStandard: sale.tokenStandard,
-        isAggregated: false,
-        isDeleted: false,
-        isFeedUpdated: false
-      };
-      sales.push(nftSale);
-    }
-
     return sales;
   }
 }

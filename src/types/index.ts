@@ -95,17 +95,3 @@ export interface PreParseInfinityMultipleNftSaleTakeOrder extends PreParseInfini
 export type PreParseInfinityMultipleNftSale =
   | PreParseInfinityMultipleNftSaleMatchOrder
   | PreParseInfinityMultipleNftSaleTakeOrder;
-
-export interface SeaportSoldNft {
-  tokenAddress: string;
-  tokenId: string;
-  seller: string;
-  buyer: string;
-}
-
-export interface SeaportReceivedAmount {
-  tokenAddress: string;
-  amount: string;
-  seller: string;
-  buyer: string;
-}

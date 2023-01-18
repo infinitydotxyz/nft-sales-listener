@@ -1,5 +1,4 @@
-import { TokensStakedEvent, TokensUnStakedEvent, RageQuitEvent } from '@infinityxyz/lib/types/core';
-import { PreParsedMultipleNftSale } from '../../types';
+import { RageQuitEvent, TokensStakedEvent, TokensUnStakedEvent } from '@infinityxyz/lib/types/core';
 import { CancelAllOrdersEvent } from '../contract-listeners/cancel-all-orders.listener';
 import { CancelMultipleOrdersEvent } from '../contract-listeners/cancel-multiple-orders.listener';
 import { MatchOrderBundleEvent } from '../contract-listeners/match-order.listener';
@@ -20,10 +19,6 @@ export interface MatchOrdersHandler {
 
 export interface TakeOrdersHandler {
   takeOrderEvent(event: TakeOrderBundleEvent): Promise<void>;
-}
-
-export interface SaleHandler {
-  nftSalesEvent(sales: PreParsedMultipleNftSale): Promise<void>;
 }
 
 export interface ProtocolFeeHandler {
@@ -47,7 +42,6 @@ export interface EventHandler
     CancelMultipleOrdersHandler,
     MatchOrdersHandler,
     TakeOrdersHandler,
-    SaleHandler,
     ProtocolFeeHandler,
     TokensStakedHandler,
     TokensUnStakedHandler,

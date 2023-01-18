@@ -1,11 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Collection } from '@infinityxyz/lib/types/core/Collection';
 import { firestoreConstants, getCollectionDocId, trimLowerCase } from '@infinityxyz/lib/utils';
-import { COLLECTION_INDEXING_SERVICE_URL } from '../constants';
-import { Firebase } from '../database/Firebase';
 import QuickLRU from 'quick-lru';
-import { enqueueCollection, ResponseType } from '../services/CollectionIndexingService';
-import { isCollectionIndexed } from '../utils';
+import { Firebase } from '../database/Firebase';
 
 export class CollectionProvider {
   private collectionCache: QuickLRU<string, Promise<Partial<Collection>>>;
@@ -29,9 +26,6 @@ export class CollectionProvider {
         .get()
         .then((doc) => {
           const collection = (doc.data() || {}) as Partial<Collection>;
-          if (!isCollectionIndexed(collection) && this.attemptToIndexCollections) {
-            void this.attemptToIndex({ address: collectionAddress, chainId });
-          }
           resolve(collection);
         })
         .catch((err) => {
@@ -40,20 +34,5 @@ export class CollectionProvider {
     });
     this.collectionCache.set(address, promise);
     return promise;
-  }
-
-  /**
-   * enqueues a collection for indexing
-   */
-  private async attemptToIndex(collection: { address: string; chainId: string }) {
-    try {
-      const res = await enqueueCollection(collection, COLLECTION_INDEXING_SERVICE_URL);
-      if (res !== ResponseType.AlreadyQueued && res !== ResponseType.IndexingInitiated) {
-        console.error(`Failed to enqueue collection:${collection.chainId}:${collection.address}. Reason: ${res}`);
-      }
-    } catch (err) {
-      console.error(`Failed to enqueue collection. ${collection.chainId}:${collection.address}`);
-      console.error(err);
-    }
   }
 }
