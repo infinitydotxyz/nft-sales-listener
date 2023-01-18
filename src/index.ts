@@ -1,19 +1,16 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
 import {
-  infinityExchangeMainnetDesc,
-  wyvernExchangeMainnetDesc,
-  seaportExchangeMainnetDesc,
-  infinityStakerMainnetDesc,
+  infinityExchangeMainnetDesc, infinityStakerMainnetDesc,
   infinityStakerMainnetDescTest
 } from './config';
-import { ContractFactory } from './models/contracts/contract.factory';
-import { EventHandler } from './models/event-handlers/handler';
+import { Firebase } from './database/Firebase';
 import { CollectionProvider } from './models/collection-provider';
-import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ContractFactory } from './models/contracts/contract.factory';
+import { ContractType } from './models/contracts/types';
+import { EventHandler } from './models/event-handlers/handler';
 import { ProtocolFeeProvider } from './models/protocol-fee-provider';
 import { Providers } from './models/Providers';
-import { Firebase } from './database/Firebase';
-import { ContractType } from './models/contracts/types';
+import { TransactionReceiptProvider } from './models/transaction-receipt-provider';
 
 async function main() {
   const providers = new Providers();
@@ -26,18 +23,6 @@ async function main() {
   const mainnetTxReceiptProvider = new TransactionReceiptProvider(500, providers.getProviderByChainId(ChainId.Mainnet));
   const infinityExchangeMainnet = contractFactory.create(
     infinityExchangeMainnetDesc,
-    handler,
-    mainnetTxReceiptProvider,
-    protocolFeeProvider
-  );
-  const wyvernExchangeMainnet = contractFactory.create(
-    wyvernExchangeMainnetDesc,
-    handler,
-    mainnetTxReceiptProvider,
-    protocolFeeProvider
-  );
-  const seaportExchangeMainnet = contractFactory.create(
-    seaportExchangeMainnetDesc,
     handler,
     mainnetTxReceiptProvider,
     protocolFeeProvider
@@ -58,8 +43,6 @@ async function main() {
 
   const contracts = [
     infinityExchangeMainnet,
-    wyvernExchangeMainnet,
-    seaportExchangeMainnet,
     infinityStakerMainnet,
     infinityStakerMainnetTest
   ];

@@ -1,15 +1,13 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { Firebase } from '../../database/Firebase';
-import { Providers } from '../Providers';
 import { EventHandler } from '../event-handlers/types';
 import { ProtocolFeeProvider } from '../protocol-fee-provider';
+import { Providers } from '../Providers';
 import { TransactionReceiptProvider } from '../transaction-receipt-provider';
 import { InfinityExchangeContract } from './infinity-exchange.contract';
-import { OpenSeaContract } from './opensea.contract';
-import { SeaportContract } from './seaport.contract';
-import { ContractDescription, Contracts, ContractType } from './types';
 import { InfinityStakerContract } from './infinity-staker.contract';
+import { ContractDescription, Contracts, ContractType } from './types';
 
 export class ContractFactory {
   constructor(private _providers: Providers, protected firebase: Firebase) {}
@@ -35,30 +33,6 @@ export class ContractFactory {
           this.firebase,
           txReceiptProvider,
           protocolFeeProvider,
-          handler,
-          desc.numBlocksToBackfill
-        );
-      case Contracts.Seaport:
-        return new SeaportContract(
-          provider,
-          address,
-          blockProvider,
-          SeaportContract.listenerConstructors,
-          chainId,
-          this.firebase,
-          txReceiptProvider,
-          handler,
-          desc.numBlocksToBackfill
-        );
-      case Contracts.OpenSea:
-        return new OpenSeaContract(
-          provider,
-          address,
-          blockProvider,
-          OpenSeaContract.listenerConstructors,
-          chainId,
-          this.firebase,
-          txReceiptProvider,
           handler,
           desc.numBlocksToBackfill
         );

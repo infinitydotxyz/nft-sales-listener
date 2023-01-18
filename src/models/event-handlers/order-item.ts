@@ -2,7 +2,6 @@ import { FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Firebase } from '../../database/Firebase';
 import { PreParsedInfinityNftSale } from '../../types';
-import { getUsername } from '../../utils';
 import { OrderType } from './types';
 
 export class OrderItem {
@@ -95,9 +94,9 @@ export class OrderItem {
     return correctToken && takerShouldBeUpdated;
   }
 
-  async handleOrderItemSale(
+  handleOrderItemSale(
     sale: Pick<PreParsedInfinityNftSale, 'buyer' | 'seller' | 'orderItems'>
-  ): Promise<FirestoreOrderItem> {
+  ): FirestoreOrderItem {
     this.orderItem.orderStatus = OBOrderStatus.Invalid;
 
     if (!this.orderItemMatches(sale)) {
@@ -106,8 +105,7 @@ export class OrderItem {
 
     if (this.type === OrderType.Offer && OrderItem.OWNER_INHERITS_OFFERS) {
       this.orderItem.takerAddress = sale.buyer;
-      const takerUsername = await getUsername(sale.buyer, this.firebase);
-      this.orderItem.takerUsername = takerUsername;
+      this.orderItem.takerUsername = '';
     }
     this.currentOwner = sale.buyer;
     return this.orderItem;

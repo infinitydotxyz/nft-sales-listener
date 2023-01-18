@@ -1,51 +1,15 @@
 import { FirestoreOrder, FirestoreOrderItem, OBOrderStatus } from '@infinityxyz/lib/types/core/OBOrder';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Firebase } from '../../database/Firebase';
-import { FirestoreDistributedCounter } from '../../database/FirestoreCounter';
 import { PreParsedInfinityNftSale } from '../../types';
 import { OrderItem } from './order-item';
 import { OrderType } from './types';
 
 export class Order {
-  // order counters
-  private ordersCounterDocRef = this.firebase.db
-    .collection(firestoreConstants.ORDERS_COLL)
-    .doc(firestoreConstants.COUNTER_DOC);
-  // num items
-  numBuyOrderItems = new FirestoreDistributedCounter(
-    this.ordersCounterDocRef,
-    firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD
-  );
-
-  numSellOrderItems = new FirestoreDistributedCounter(
-    this.ordersCounterDocRef,
-    firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD
-  );
-  // start prices
-  openBuyInterest = new FirestoreDistributedCounter(
-    this.ordersCounterDocRef,
-    firestoreConstants.OPEN_BUY_INTEREST_FIELD
-  );
-  openSellInterest = new FirestoreDistributedCounter(
-    this.ordersCounterDocRef,
-    firestoreConstants.OPEN_SELL_INTEREST_FIELD
-  );
-
   static getRef(orderId: string, firebase: Firebase): FirebaseFirestore.DocumentReference<FirestoreOrder> {
     return firebase.db
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(orderId) as FirebaseFirestore.DocumentReference<FirestoreOrder>;
-  }
-
-  updateOrderCounters() {
-    const numItems = this.order.numItems;
-    if (this.order.signedOrder.isSellOrder) {
-      this.numSellOrderItems.incrementBy(numItems * -1);
-      this.openSellInterest.incrementBy(this.order.startPriceEth * -1);
-    } else {
-      this.numBuyOrderItems.incrementBy(numItems * -1);
-      this.openBuyInterest.incrementBy(this.order.startPriceEth * -1);
-    }
   }
 
   private orderItemsRef: FirebaseFirestore.CollectionReference<FirestoreOrderItem>;
@@ -61,17 +25,11 @@ export class Order {
   ): Promise<FirestoreOrder> {
     const orderItems = await this.getOrderItems();
     for (const orderItem of orderItems) {
-      await orderItem.handleOrderItemSale(sale);
+      orderItem.handleOrderItemSale(sale);
       await orderItem.save();
     }
 
     this.order.orderStatus = OBOrderStatus.Invalid;
-
-    try {
-      this.updateOrderCounters();
-    } catch (err) {
-      console.error('Error updating order counters on order fulfillment', err);
-    }
 
     await this.save();
     console.log('Updated infinity order: ', this.order.id, 'to status', this.order.orderStatus);
