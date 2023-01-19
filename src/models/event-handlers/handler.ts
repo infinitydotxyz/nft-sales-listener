@@ -153,7 +153,7 @@ export class EventHandler implements IEventHandler {
       await this.updateOrderStatus(sale, sale.sellOrderHash);
     }
     const sales = this.parseInfinityMultipleSaleOrder(events);
-    await this.saveSales(sales);
+    await this.saveSalesToFeed(sales);
   }
 
   async takeOrderEvent({ events }: TakeOrderBundleEvent): Promise<void> {
@@ -161,7 +161,7 @@ export class EventHandler implements IEventHandler {
       await this.updateOrderStatus(sale, sale.orderHash);
     }
     const sales = this.parseInfinityMultipleSaleOrder(events);
-    await this.saveSales(sales);
+    await this.saveSalesToFeed(sales);
   }
 
   async protocolFeeUpdatedEvent(protocolFeeUpdated: ProtocolFeeUpdatedEvent): Promise<void> {
@@ -171,30 +171,20 @@ export class EventHandler implements IEventHandler {
       .set(protocolFeeUpdated);
   }
 
-  private async saveSales(sales: NftSale[]): Promise<void> {
+  private async saveSalesToFeed(sales: NftSale[]): Promise<void> {
     if (!sales.length || !sales[0]) {
       return;
     }
     const events = await this.getFeedSaleEvents(sales);
     const txHash = sales[0]?.txHash;
     try {
-      await this.firebase.db.runTransaction(async (tx) => {
-        const snap = this.firebase.db
-          .collection(firestoreConstants.SALES_COLL)
-          .where('txHash', '==', trimLowerCase(txHash))
-          .limit(1);
-        const data = await tx.get(snap);
-        if (!data.empty) {
-          throw new Error(`Sale already exists for txHash: ${txHash}. Skipping`);
+      const feedCollectionRef = this.firebase.db.collection(firestoreConstants.FEED_COLL);
+      for (const { sale, feedEvent } of events) {
+        if (feedEvent) {
+          feedCollectionRef.doc().set(feedEvent).catch((err) => console.error(err));
+          sale.isFeedUpdated = true;
         }
-
-        const salesCollectionRef = this.firebase.db.collection(firestoreConstants.SALES_COLL);
-
-        for (const { sale } of events) {
-          const saleDocRef = salesCollectionRef.doc();
-          tx.create(saleDocRef, sale);
-        }
-      });
+      }
     } catch (err: any) {
       if (err?.toString?.()?.includes('Sale already exists for txHash')) {
         console.log(`Sale already exists for txHash: ${txHash}`);
